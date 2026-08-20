@@ -1,0 +1,3226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Bom Ruido — Sistema Inteligente de Monitoramento de Ruído Escolar" />
+  <title>Bom Ruido — Monitor de Ruído Escolar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,0,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <style>
+    :root {
+  --bg-deep:    #0b0e1a;
+  --bg-card:    #111827;
+  --bg-card2:   #1a2035;
+  --bg-hover:   #1f2a45;
+  --border:     #1e2d4a;
+  --text:       #e2e8f0;
+  --text-muted: #6b7a99;
+  --blue:       #3b82f6;
+  --blue-glow:  rgba(59,130,246,.25);
+  --purple:     #8b5cf6;
+  --purple-glow:rgba(139,92,246,.25);
+  --green:      #10b981;
+  --green-glow: rgba(16,185,129,.25);
+  --yellow:     #f59e0b;
+  --yellow-glow:rgba(245,158,11,.25);
+  --red:        #ef4444;
+  --red-glow:   rgba(239,68,68,.25);
+  --sidebar-w:  240px;
+  --radius:     14px;
+  --radius-sm:  8px;
+  --shadow:     0 4px 24px rgba(0,0,0,.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg-deep);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+.hidden { display: none !important; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ============ boot ============ */
+#boot {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg-deep);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 1.5rem;
+}
+.login-inner { text-align: center; }
+.login-icon { display: flex; justify-content: center; margin-bottom: 1.2rem; }
+.sound-wave { display: flex; align-items: flex-end; gap: 5px; height: 50px; }
+.sound-wave span {
+  display: block; width: 7px; border-radius: 4px;
+  background: linear-gradient(180deg, var(--blue), var(--purple));
+  animation: wave 1.2s ease-in-out infinite;
+}
+.sound-wave span:nth-child(1) { height: 20px; animation-delay: 0s; }
+.sound-wave span:nth-child(2) { height: 35px; animation-delay: .1s; }
+.sound-wave span:nth-child(3) { height: 50px; animation-delay: .2s; }
+.sound-wave span:nth-child(4) { height: 35px; animation-delay: .3s; }
+.sound-wave span:nth-child(5) { height: 20px; animation-delay: .4s; }
+@keyframes wave { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(.4); } }
+.login-text { font-family: 'Space Mono', monospace; font-size: .85rem; color: var(--text-muted); letter-spacing: .08em; }
+.dots { animation: blink 1.5s step-start infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ============ LOGIN ============ */
+#login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; }
+.login-bg { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+.login-grid {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(59,130,246,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,.06) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+.login-orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .25; }
+.orb1 { width: 500px; height: 500px; background: var(--blue); top: -100px; left: -100px; }
+.orb2 { width: 400px; height: 400px; background: var(--purple); bottom: -80px; right: -80px; }
+.login-card {
+  position: relative; z-index: 10;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+  padding: 2.5rem; width: min(420px, 92vw);
+  box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(59,130,246,.1);
+  animation: slideUp .6s ease both;
+}
+@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.login-logo { text-align: center; margin-bottom: 2rem; }
+.logo-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 54px; height: 54px; border-radius: 14px;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  font-size: 1.4rem; color: #fff; margin-bottom: .8rem;
+  box-shadow: 0 0 24px var(--blue-glow);
+}
+.login-logo h1 { font-family: 'Space Mono', monospace; font-size: 1.6rem; color: var(--text); letter-spacing: .04em; }
+.login-logo p { font-size: .8rem; color: var(--text-muted); margin-top: .3rem; }
+.form-group { margin-bottom: 1.1rem; }
+.form-group label { display: block; font-size: .78rem; font-weight: 500; color: var(--text-muted); margin-bottom: .4rem; letter-spacing: .04em; }
+.form-group input, .config-input {
+  width: 100%; padding: .7rem 1rem; background: var(--bg-deep); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: .9rem;
+  outline: none; transition: border-color .2s, box-shadow .2s;
+}
+.form-group input:focus, .config-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+.input-pw { position: relative; }
+.input-pw input { padding-right: 2.8rem; }
+.toggle-pw { position: absolute; right: .7rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; padding: .3rem; transition: color .2s; }
+.toggle-pw:hover { color: var(--text); }
+.login-extras { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.3rem; }
+.remember-me { display: flex; align-items: center; gap: .4rem; font-size: .8rem; color: var(--text-muted); cursor: pointer; }
+.forgot { font-size: .8rem; color: var(--blue); text-decoration: none; }
+.forgot:hover { text-decoration: underline; }
+.btn-login {
+  width: 100%; padding: .8rem; background: linear-gradient(135deg, var(--blue), var(--purple));
+  border: none; border-radius: var(--radius-sm); color: #fff; font-family: 'DM Sans', sans-serif;
+  font-size: .95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; gap: .6rem; transition: opacity .2s, transform .1s;
+}
+.btn-login:hover { opacity: .9; transform: translateY(-1px); }
+.btn-login:active { transform: translateY(0); }
+.login-hint { text-align: center; font-size: .75rem; color: var(--text-muted); margin-top: .9rem; }
+.footer { margin-top: 20px; text-align: center; color: #94a3b8; font-size: 14px; }
+.footer a { color: var(--blue); text-decoration: none; }
+
+/* ============ APP LAYOUT ============ */
+#app { display: flex; min-height: 100vh; }
+
+/* ============ sidebar ============ */
+#sidebar {
+  width: var(--sidebar-w); min-height: 100vh; background: var(--bg-card);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  position: fixed; left: 0; top: 0; z-index: 200; transition: transform .3s ease;
+}
+.sidebar-logo { display: flex; align-items: center; gap: .75rem; padding: 1.3rem 1.2rem; border-bottom: 1px solid var(--border); font-family: 'Space Mono', monospace; font-size: 1.1rem; color: var(--text); }
+.sidebar-logo .logo-icon { width: 34px; height: 34px; font-size: .85rem; border-radius: 9px; }
+.sidebar-nav { flex: 1; padding: 1rem 0; overflow-y: auto; }
+.nav-item {
+  display: flex; align-items: center; gap: .75rem; padding: .72rem 1.2rem; color: var(--text-muted);
+  text-decoration: none; font-size: .875rem; font-weight: 500; transition: background .2s, color .2s;
+  position: relative; border-radius: 0 10px 10px 0; margin-right: .6rem; cursor: pointer;
+}
+.nav-item:hover { background: var(--bg-hover); color: var(--text); }
+.nav-item.active { background: linear-gradient(90deg, rgba(59,130,246,.18), rgba(59,130,246,.04)); color: var(--blue); border-left: 2px solid var(--blue); }
+.nav-item i { width: 18px; text-align: center; font-size: .95rem; }
+.badge { margin-left: auto; background: var(--red); color: #fff; font-size: .65rem; font-weight: 700; padding: .15rem .45rem; border-radius: 20px; display: none; }
+.badge.show { display: inline; }
+.sidebar-footer { padding: 1rem 1.2rem; border-top: 1px solid var(--border); display: flex; align-items: center; gap: .6rem; }
+.user-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--purple)); display: flex; align-items: center; justify-content: center; font-size: .8rem; flex-shrink: 0; }
+.user-info { flex: 1; overflow: hidden; }
+.user-info strong { display: block; font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-info small { color: var(--text-muted); font-size: .72rem; }
+.btn-logout { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: .3rem; font-size: .9rem; transition: color .2s; }
+.btn-logout:hover { color: var(--red); }
+
+/* ============ MAIN WRAP ============ */
+.main-wrap { flex: 1; margin-left: var(--sidebar-w); display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ============ topbar ============ */
+.topbar { height: 58px; background: var(--bg-card); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 1.5rem; gap: 1rem; position: sticky; top: 0; z-index: 100; }
+.hamburger { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: .3rem; display: none; transition: color .2s; }
+.hamburger:hover { color: var(--text); }
+.topbar-title { font-family: 'Space Mono', monospace; font-size: .9rem; letter-spacing: .04em; color: var(--text); flex: 1; }
+.topbar-right { display: flex; align-items: center; gap: .8rem; }
+.sensor-pill { display: flex; align-items: center; gap: .45rem; background: var(--bg-card2); border: 1px solid var(--border); border-radius: 20px; padding: .3rem .8rem; font-size: .75rem; color: var(--text-muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.dot.pulse { animation: pulse-dot 1.5s ease infinite; }
+@keyframes pulse-dot { 0%,100% { box-shadow: 0 0 4px var(--red); } 50% { box-shadow: 0 0 12px var(--red), 0 0 20px var(--red); } }
+.clock { font-family: 'Space Mono', monospace; font-size: .8rem; color: var(--text-muted); }
+
+/* ============ alert banner ============ */
+.alert-banner {
+  background: linear-gradient(90deg, rgba(239,68,68,.18), rgba(239,68,68,.05));
+  border-bottom: 1px solid rgba(239,68,68,.3); padding: .6rem 1.5rem;
+  display: flex; align-items: center; gap: .75rem; color: #fca5a5; font-size: .85rem; animation: slideDown .3s ease;
+}
+@keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+.alert-banner i:first-child { color: var(--red); font-size: 1rem; }
+.alert-banner span { flex: 1; }
+.alert-banner button { background: none; border: none; color: #fca5a5; cursor: pointer; font-size: 1rem; padding: .2rem; }
+
+/* ============ CONTENT ============ */
+.content { flex: 1; padding: 1.5rem; }
+.page { display: none; animation: fadeIn .3s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
+.page-header h2 { font-family: 'Space Mono', monospace; font-size: 1.1rem; color: var(--text); letter-spacing: .02em; }
+.page-header h2 span { color: var(--text-muted); font-weight: 400; }
+
+/* ============ buttons ============ */
+.btn-primary, .btn-secondary, .btn-danger {
+  display: inline-flex; align-items: center; gap: .5rem; padding: .55rem 1.1rem; border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif; font-size: .82rem; font-weight: 600; cursor: pointer;
+  transition: opacity .2s, transform .1s; border: none;
+}
+.btn-primary { background: linear-gradient(135deg, var(--blue), var(--purple)); color: #fff; }
+.btn-secondary { background: var(--bg-card2); border: 1px solid var(--border); color: var(--text); }
+.btn-danger { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); color: var(--red); }
+.btn-primary:hover, .btn-secondary:hover, .btn-danger:hover { opacity: .85; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.icon-btn {
+  width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg-card2);
+  color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: .78rem; transition: background .15s, color .15s;
+}
+.icon-btn:hover { background: var(--bg-hover); color: var(--text); }
+.icon-btn.danger:hover { background: rgba(239,68,68,.12); color: var(--red); border-color: rgba(239,68,68,.3); }
+
+/* ============ gauge panel ============ */
+.gauge-section { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.2rem; }
+.gauge-card, .scale-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); }
+.gauge-label { font-family: 'Space Mono', monospace; font-size: .68rem; color: var(--blue); letter-spacing: .12em; margin-bottom: 1rem; }
+.gauge-wrap { display: flex; justify-content: center; }
+.gauge-svg { width: 220px; overflow: visible; }
+.gauge-status { display: flex; align-items: center; justify-content: center; gap: .5rem; margin-top: .8rem; font-family: 'Space Mono', monospace; font-size: .85rem; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted); transition: background .3s; }
+.gauge-meta { display: flex; justify-content: center; gap: 1.5rem; margin-top: .8rem; font-size: .75rem; color: var(--text-muted); }
+.gauge-meta i { margin-right: .3rem; }
+.scale-card h3 { font-size: .9rem; margin-bottom: 1rem; color: var(--text-muted); font-weight: 500; }
+.scale-items { display: flex; flex-direction: column; gap: .7rem; }
+.scale-item { display: flex; align-items: center; gap: .9rem; padding: .7rem 1rem; border-radius: var(--radius-sm); border-left: 3px solid; }
+.scale-item.green { background: rgba(16,185,129,.08); border-color: var(--green); }
+.scale-item.yellow { background: rgba(245,158,11,.08); border-color: var(--yellow); }
+.scale-item.red { background: rgba(239,68,68,.08); border-color: var(--red); }
+.si-range { font-family: 'Space Mono', monospace; font-size: .75rem; white-space: nowrap; min-width: 70px; }
+.si-label { font-size: .82rem; color: var(--text-muted); }
+.scale-item.green .si-range { color: var(--green); }
+.scale-item.yellow .si-range { color: var(--yellow); }
+.scale-item.red .si-range { color: var(--red); }
+.tea-notice { display: flex; align-items: flex-start; gap: .7rem; background: rgba(139,92,246,.08); border: 1px solid rgba(139,92,246,.2); border-radius: var(--radius-sm); padding: .85rem 1rem; margin-top: 1rem; font-size: .8rem; color: var(--text-muted); line-height: 1.5; }
+.tea-notice i { color: var(--purple); font-size: 1rem; margin-top: .1rem; }
+.tea-notice strong { color: var(--purple); }
+
+/* stats grid */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.2rem; }
+.stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.2rem; display: flex; align-items: center; gap: 1rem; box-shadow: var(--shadow); transition: border-color .2s; }
+.stat-card:hover { border-color: var(--blue); }
+.stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.stat-icon.blue { background: rgba(59,130,246,.12); color: var(--blue); }
+.stat-icon.red  { background: rgba(239,68,68,.12); color: var(--red); }
+.stat-icon.yellow { background: rgba(245,158,11,.12); color: var(--yellow); }
+.stat-icon.green { background: rgba(16,185,129,.12); color: var(--green); }
+.stat-info { display: flex; flex-direction: column; }
+.stat-val { font-family: 'Space Mono', monospace; font-size: 1.4rem; color: var(--text); line-height: 1; }
+.stat-lbl { font-size: .72rem; color: var(--text-muted); margin-top: .3rem; }
+
+.mini-chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.2rem; box-shadow: var(--shadow); }
+.card-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: .5rem; }
+.card-header-row h3 { font-size: .9rem; color: var(--text); font-weight: 500; }
+.live-badge { display: flex; align-items: center; gap: .4rem; font-family: 'Space Mono', monospace; font-size: .68rem; color: var(--red); letter-spacing: .08em; }
+.card-header-row select { background: var(--bg-card2); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); padding: .3rem .6rem; font-size: .8rem; outline: none; cursor: pointer; }
+
+/* ============ charts ============ */
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.span2 { grid-column: span 2; }
+.chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.3rem; box-shadow: var(--shadow); }
+.chart-legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 1.2rem; margin-top: .8rem; font-size: .78rem; color: var(--text-muted); }
+.chart-legend i.green { color: var(--green); }
+.chart-legend i.yellow { color: var(--yellow); }
+.chart-legend i.red { color: var(--red); }
+.chart-legend i.dashed { color: var(--text-muted); }
+.chart-note { font-size: .72rem; color: var(--text-muted); margin-top: .6rem; line-height: 1.5; }
+
+/* ============ SALAS ============ */
+.salas-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+.sala-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.4rem;
+  box-shadow: var(--shadow); transition: border-color .3s; position: relative; overflow: hidden;
+}
+.sala-card::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity .3s; }
+.sala-card.green { border-color: rgba(16,185,129,.3); }
+.sala-card.yellow { border-color: rgba(245,158,11,.3); }
+.sala-card.red { border-color: rgba(239,68,68,.3); }
+.sala-card.green::before { background: radial-gradient(circle at top right, rgba(16,185,129,.06), transparent); opacity: 1; }
+.sala-card.yellow::before { background: radial-gradient(circle at top right, rgba(245,158,11,.06), transparent); opacity: 1; }
+.sala-card.red::before { background: radial-gradient(circle at top right, rgba(239,68,68,.06), transparent); opacity: 1; }
+.sala-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: .5rem; }
+.sala-name-wrap { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+.sala-name { font-family: 'Space Mono', monospace; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sala-actions { display: flex; gap: .35rem; flex-shrink: 0; position: relative; z-index: 1; }
+.sala-sensor { font-size: .7rem; padding: .2rem .6rem; border-radius: 12px; background: rgba(16,185,129,.12); color: var(--green); border: 1px solid rgba(16,185,129,.2); white-space: nowrap; }
+.sala-sensor.offline { background: rgba(239,68,68,.12); color: var(--red); border-color: rgba(239,68,68,.2); }
+.sala-db-big { font-family: 'Space Mono', monospace; font-size: 3rem; line-height: 1; margin-bottom: .3rem; position: relative; z-index: 1; }
+.sala-db-big.green { color: var(--green); }
+.sala-db-big.yellow { color: var(--yellow); }
+.sala-db-big.red { color: var(--red); }
+.sala-db-unit { font-size: .85rem; color: var(--text-muted); margin-bottom: 1rem; position: relative; z-index: 1; }
+.sala-bar { height: 6px; background: var(--bg-deep); border-radius: 3px; overflow: hidden; position: relative; z-index: 1; }
+.sala-bar-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+.sala-bar-fill.green { background: var(--green); }
+.sala-bar-fill.yellow { background: var(--yellow); }
+.sala-bar-fill.red { background: var(--red); }
+.sala-footer { display: flex; justify-content: space-between; margin-top: .7rem; font-size: .75rem; color: var(--text-muted); position: relative; z-index: 1; }
+
+/* add-room card */
+.add-sala-card {
+  background: var(--bg-card2); border: 1.5px dashed var(--border); border-radius: var(--radius);
+  padding: 1.4rem; display: flex; flex-direction: column; justify-content: center; gap: .8rem;
+  min-height: 100%;
+}
+.add-sala-card h3 { font-size: .85rem; color: var(--text-muted); font-weight: 500; display: flex; align-items: center; gap: .5rem; }
+.add-sala-card h3 i { color: var(--blue); }
+.add-sala-form { display: flex; flex-direction: column; gap: .6rem; }
+.add-sala-form input {
+  width: 100%; padding: .6rem .8rem; background: var(--bg-deep); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: .85rem; outline: none;
+}
+.add-sala-form input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+.add-sala-hint { font-size: .72rem; color: var(--text-muted); }
+
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+.empty-state i { font-size: 2.5rem; margin-bottom: 1rem; opacity: .4; }
+.empty-state p { font-size: .9rem; }
+
+/* ============ ALERTS ============ */
+.alerts-list { display: flex; flex-direction: column; gap: .75rem; }
+.alert-item { display: flex; align-items: flex-start; gap: .9rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.2rem; animation: slideUp .3s ease; }
+.alert-item.critical { border-left: 3px solid var(--red); }
+.alert-item.moderate { border-left: 3px solid var(--yellow); }
+.alert-item.tea { border-left: 3px solid var(--purple); }
+.alert-icon { font-size: 1rem; margin-top: .1rem; flex-shrink: 0; }
+.alert-item.critical .alert-icon { color: var(--red); }
+.alert-item.moderate .alert-icon { color: var(--yellow); }
+.alert-item.tea .alert-icon { color: var(--purple); }
+.alert-content { flex: 1; }
+.alert-title { font-size: .87rem; font-weight: 600; margin-bottom: .2rem; }
+.alert-meta { font-size: .75rem; color: var(--text-muted); }
+.alert-badge { font-size: .65rem; font-weight: 700; padding: .2rem .55rem; border-radius: 12px; align-self: flex-start; }
+.alert-badge.critical { background: rgba(239,68,68,.12); color: var(--red); }
+.alert-badge.moderate { background: rgba(245,158,11,.12); color: var(--yellow); }
+.alert-badge.tea { background: rgba(139,92,246,.12); color: var(--purple); }
+
+/* ============ table ============ */
+.table-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.table-controls { display: flex; align-items: center; gap: .8rem; padding: 1rem 1.2rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.search-wrap { display: flex; align-items: center; gap: .5rem; background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .4rem .8rem; flex: 1; }
+.search-wrap i { color: var(--text-muted); font-size: .85rem; }
+.search-wrap input { background: none; border: none; outline: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: .87rem; width: 100%; }
+.filter-group { display: flex; gap: .5rem; flex-wrap: wrap; }
+.filter-group select { background: var(--bg-deep); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); padding: .4rem .7rem; font-size: .8rem; outline: none; cursor: pointer; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead tr { border-bottom: 1px solid var(--border); }
+thead th { padding: .8rem 1.2rem; text-align: left; font-size: .75rem; font-weight: 600; color: var(--text-muted); letter-spacing: .06em; cursor: pointer; white-space: nowrap; user-select: none; }
+thead th:hover { color: var(--text); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--bg-hover); }
+tbody td { padding: .75rem 1.2rem; font-size: .85rem; }
+.table-footer { display: flex; align-items: center; justify-content: space-between; padding: .8rem 1.2rem; border-top: 1px solid var(--border); font-size: .78rem; color: var(--text-muted); }
+.pagination { display: flex; gap: .3rem; }
+.pg-btn { width: 28px; height: 28px; border-radius: 6px; background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; font-size: .78rem; display: flex; align-items: center; justify-content: center; transition: background .15s; }
+.pg-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.pg-btn:hover:not(.active) { background: var(--bg-hover); }
+
+.status-badge { display: inline-block; font-size: .7rem; font-weight: 600; padding: .2rem .6rem; border-radius: 12px; }
+.status-badge.green  { background: rgba(16,185,129,.12); color: var(--green); }
+.status-badge.yellow { background: rgba(245,158,11,.12); color: var(--yellow); }
+.status-badge.red    { background: rgba(239,68,68,.12); color: var(--red); }
+
+/* ============ RELATÓRIOS ============ */
+.report-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; }
+.report-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.4rem; text-align: center; box-shadow: var(--shadow); }
+.report-card i { font-size: 1.5rem; margin-bottom: .8rem; display: block; }
+.report-card.blue i { color: var(--blue); }
+.report-card.red i { color: var(--red); }
+.report-card.yellow i { color: var(--yellow); }
+.report-card.purple i { color: var(--purple); }
+.report-val { font-family: 'Space Mono', monospace; font-size: 1.8rem; margin-bottom: .4rem; }
+.report-card.blue .report-val { color: var(--blue); }
+.report-card.red .report-val { color: var(--red); }
+.report-card.yellow .report-val { color: var(--yellow); }
+.report-card.purple .report-val { color: var(--purple); }
+.report-lbl { font-size: .78rem; color: var(--text-muted); }
+.report-table-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 1.2rem; }
+.report-table-card h3 { padding: 1rem 1.3rem; font-size: .9rem; border-bottom: 1px solid var(--border); font-weight: 500; }
+
+/* ============ SOBRE ============ */
+.about-hero { display: grid; grid-template-columns: 1fr auto; gap: 2rem; align-items: center; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 2.5rem; margin-bottom: 1.5rem; overflow: hidden; position: relative; }
+.about-tag { display: inline-block; font-size: .72rem; font-weight: 600; color: var(--blue); letter-spacing: .1em; text-transform: uppercase; background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.2); border-radius: 20px; padding: .25rem .75rem; margin-bottom: .9rem; }
+.about-hero-text h1 { font-family: 'Space Mono', monospace; font-size: 1.5rem; line-height: 1.4; margin-bottom: .9rem; }
+.about-hero-text p { color: var(--text-muted); line-height: 1.7; max-width: 480px; }
+.about-hero-art { position: relative; width: 160px; height: 160px; flex-shrink: 0; }
+.art-circles { position: relative; width: 100%; height: 100%; }
+.ac { position: absolute; border-radius: 50%; border: 1px solid; animation: spin 8s linear infinite; }
+.ac1 { inset: 0; border-color: rgba(59,130,246,.2); animation-duration: 8s; }
+.ac2 { inset: 20px; border-color: rgba(139,92,246,.2); animation-duration: 12s; animation-direction: reverse; }
+.ac3 { inset: 40px; border-color: rgba(16,185,129,.2); animation-duration: 6s; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.art-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 2rem; color: var(--blue); filter: drop-shadow(0 0 12px var(--blue)); }
+.about-cards { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.5rem; }
+.about-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.4rem; box-shadow: var(--shadow); }
+.about-card-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; margin-bottom: .9rem; }
+.about-card-icon.blue { background: rgba(59,130,246,.12); color: var(--blue); }
+.about-card-icon.green { background: rgba(16,185,129,.12); color: var(--green); }
+.about-card-icon.purple { background: rgba(139,92,246,.12); color: var(--purple); }
+.about-card-icon.yellow { background: rgba(245,158,11,.12); color: var(--yellow); }
+.about-card h3 { font-size: .9rem; margin-bottom: .6rem; }
+.about-card p { font-size: .82rem; color: var(--text-muted); line-height: 1.6; }
+
+/* ============ CONFIG ============ */
+.config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.config-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.4rem; box-shadow: var(--shadow); }
+.config-card h3 { font-size: .88rem; font-weight: 600; margin-bottom: 1.2rem; display: flex; align-items: center; gap: .5rem; color: var(--text); }
+.config-card h3 i { color: var(--blue); }
+.config-field { margin-bottom: 1rem; }
+.config-field label { display: block; font-size: .78rem; color: var(--text-muted); margin-bottom: .5rem; }
+.range-wrap { display: flex; align-items: center; gap: .8rem; }
+input[type="range"] { background: var(--border); border-radius: 2px; outline: none; cursor: pointer; width: 100%; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--blue); cursor: pointer; box-shadow: 0 0 6px var(--blue-glow); }
+.range-val { font-family: 'Space Mono', monospace; font-size: .78rem; color: var(--blue); min-width: 40px; text-align: right; }
+.toggle-field { display: flex; align-items: center; justify-content: space-between; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+.toggle-field:last-child { border-bottom: none; }
+.toggle-field > label:first-child { font-size: .85rem; }
+.toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; inset: 0; cursor: pointer; background: var(--border); border-radius: 24px; transition: background .2s; }
+.slider::before { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; left: 3px; top: 3px; background: #fff; transition: transform .2s; }
+.toggle input:checked + .slider { background: var(--blue); }
+.toggle input:checked + .slider::before { transform: translateX(20px); }
+.version-info { font-family: 'Space Mono', monospace; font-size: .78rem; color: var(--text-muted); padding: .5rem 0; }
+.config-summary { display: flex; align-items: center; justify-content: space-between; background: var(--bg-card2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .9rem 1rem; margin-top: .3rem; }
+.config-summary strong { font-family: 'Space Mono', monospace; font-size: 1.3rem; color: var(--blue); display: block; }
+.config-summary span { font-size: .75rem; color: var(--text-muted); }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1100px) {
+  .stats-grid { grid-template-columns: repeat(2,1fr); }
+  .report-grid { grid-template-columns: repeat(2,1fr); }
+  .about-cards { grid-template-columns: repeat(2,1fr); }
+  .salas-grid { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 900px) {
+  .gauge-section { grid-template-columns: 1fr; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .span2 { grid-column: span 1; }
+  .about-cards { grid-template-columns: 1fr; }
+  .config-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  #sidebar { transform: translateX(-100%); }
+  #sidebar.open { transform: translateX(0); }
+  .main-wrap { margin-left: 0; }
+  .hamburger { display: block; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .salas-grid { grid-template-columns: 1fr; }
+  .about-hero { grid-template-columns: 1fr; }
+  .about-hero-art { display: none; }
+  .report-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .content { padding: 1rem; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .report-grid { grid-template-columns: 1fr; }
+  .topbar { padding: 0 .8rem; }
+  .clock { display: none; }
+}
+
+.sidebar-overlay { display: none; position: fixed; inset: 0; z-index: 199; background: rgba(0,0,0,.5); }
+.sidebar-overlay.show { display: block; }
+
+/* toast */
+.toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; background: var(--bg-card); color: var(--text); padding: .8rem 1.4rem; border-radius: 10px; font-size: .85rem; box-shadow: 0 4px 20px rgba(0,0,0,.4); display: flex; align-items: center; gap: .6rem; animation: slideUp .3s ease; }
+
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+/* melhorias de acessibilidade e formulários adicionadas sem alterar a identidade visual */
+.sr-only { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+input[type="date"], select.config-input { width:100%; padding:.6rem .8rem; background:var(--bg-deep); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text); font-family:'DM Sans',sans-serif; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+#login-error { min-height: 1.2rem; color: #fca5a5; }
+
+/* Cadastro e estados de formulário */
+#register-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+#register-screen.hidden { display:none; }
+.register-card { width:min(420px,92vw); }
+.password-rules { margin:-.3rem 0 1rem; font-size:.72rem; line-height:1.45; color:var(--text-muted); display:flex; gap:.4rem; align-items:flex-start; }
+.password-rules i { color:var(--blue); margin-top:.1rem; }
+#register-error { min-height:1.2rem; color:#fca5a5; }
+#login-error { min-height:1.2rem; color:#fca5a5; }
+
+/* Garantia de visualização dos gráficos */
+.chart-card canvas, .mini-chart-card canvas { width:100% !important; min-height:180px; display:block; }
+.mini-chart-card canvas { min-height:90px; }
+
+@media (max-width: 520px) {
+  .register-card { padding:1.5rem; }
+}
+
+  
+/* ===== DESAFIO DAS SALAS ===== */
+.challenge-page{min-height:calc(100vh - 120px)}
+.challenge-header{align-items:flex-start}.challenge-header h2{display:flex;align-items:center;gap:.55rem}.challenge-live-pill{display:flex;align-items:center;gap:.45rem;padding:.55rem .8rem;border:1px solid var(--border);border-radius:999px;background:var(--bg-card)}
+.challenge-hero{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1.35rem 1.5rem;margin-bottom:1.2rem;border:1px solid rgba(245,158,11,.25);border-radius:var(--radius);background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(59,130,246,.06));box-shadow:var(--shadow)}
+.challenge-kicker{font-family:'Space Mono',monospace;font-size:.68rem;letter-spacing:.12em;color:var(--yellow)}.challenge-hero h3{margin:.3rem 0;font-size:1.5rem}.challenge-hero p{color:var(--text-muted);margin:0}.challenge-hero-stat{text-align:center;min-width:110px}.challenge-hero-stat strong{display:block;font-family:'Space Mono',monospace;font-size:2rem;color:var(--yellow)}.challenge-hero-stat span{font-size:.72rem;color:var(--text-muted)}
+.challenge-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(280px,1fr);gap:1.2rem}.challenge-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow)}.challenge-side{display:flex;flex-direction:column;gap:1.2rem}.challenge-card-title{display:flex;align-items:center;gap:.55rem;font-size:.9rem;margin-bottom:1rem}.challenge-card-title i{color:var(--yellow)}.challenge-card-title small{margin-left:auto;color:var(--text-muted);font-size:.68rem;font-weight:400}
+.leaderboard-list{display:flex;flex-direction:column;gap:.65rem}.leaderboard-row{display:grid;grid-template-columns:48px minmax(0,1fr) 110px 110px;align-items:center;gap:.8rem;padding:.85rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card2)}.leaderboard-row.top{border-color:rgba(245,158,11,.4);background:linear-gradient(90deg,rgba(245,158,11,.09),rgba(245,158,11,.02))}.rank-medal{font-size:1.25rem;text-align:center}.room-name{font-weight:700}.room-sub{display:block;font-size:.68rem;color:var(--text-muted);margin-top:.15rem}.score{text-align:right;font-family:'Space Mono',monospace;font-weight:700}.score small{display:block;font-family:inherit;font-size:.62rem;color:var(--text-muted);font-weight:400}.challenge-empty{padding:2rem;text-align:center;color:var(--text-muted);border:1px dashed var(--border);border-radius:var(--radius-sm)}
+.challenge-rules{margin:0;padding-left:1.15rem;color:var(--text-muted);font-size:.78rem;line-height:1.65}.challenge-rules li{margin-bottom:.45rem}.challenge-prizes{display:flex;flex-direction:column;gap:.55rem}.prize-item{padding:.7rem .8rem;border-radius:var(--radius-sm);background:var(--bg-card2);border:1px solid var(--border);font-size:.78rem}.prize-item strong{display:block;margin-bottom:.15rem}.challenge-stats{margin-top:1.2rem}.challenge-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem}.challenge-stat-grid>div{padding:.9rem;background:var(--bg-card2);border:1px solid var(--border);border-radius:var(--radius-sm)}.challenge-stat-grid span{display:block;color:var(--text-muted);font-size:.68rem}.challenge-stat-grid strong{display:block;margin-top:.3rem;font-family:'Space Mono',monospace;font-size:.85rem}.challenge-admin{margin-top:1.2rem}.challenge-form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem}.challenge-form-grid label{font-size:.72rem;color:var(--text-muted)}.challenge-form-grid input{display:block;width:100%;margin-top:.35rem}.challenge-admin-actions{display:flex;gap:.7rem;margin-top:1rem}.challenge-admin-actions button{min-width:150px}
+@media(max-width:900px){.challenge-grid{grid-template-columns:1fr}.challenge-stat-grid{grid-template-columns:repeat(2,1fr)}.challenge-form-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.challenge-hero{align-items:flex-start;flex-direction:column}.challenge-hero-stat{text-align:left}.leaderboard-row{grid-template-columns:40px minmax(0,1fr);gap:.45rem}.leaderboard-row .score{grid-column:2;text-align:left}.challenge-stat-grid{grid-template-columns:1fr}.challenge-form-grid{grid-template-columns:1fr}.challenge-admin-actions{flex-direction:column}.challenge-admin-actions button{width:100%}}
+
+/* ===== RESPONSIVIDADE FINAL ===== */
+html { -webkit-text-size-adjust: 100%; }
+body { min-width: 320px; }
+button, input, select, textarea { font: inherit; }
+img, svg, canvas { max-width: 100%; }
+.page-header > * { min-width: 0; }
+.topbar-right { min-width: 0; }
+.sensor-pill { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.content { width: 100%; max-width: 1600px; margin: 0 auto; }
+.card, .config-card, .stat-card, .chart-card, .table-card, .about-card, .challenge-card { min-width: 0; }
+.challenge-page { overflow-wrap: anywhere; }
+.leaderboard-row > * { min-width: 0; }
+.room-name, .room-sub, .score strong, .score small { overflow-wrap: anywhere; }
+.sidebar-overlay { position: fixed; inset: 0; z-index: 150; background: rgba(0,0,0,.58); backdrop-filter: blur(2px); display:none; }
+.sidebar-overlay.show { display:block; }
+@media (max-width: 900px) {
+  .content { padding: 1rem; }
+  .page-header { align-items: flex-start; }
+  .page-header h2 { font-size: 1rem; line-height: 1.35; }
+  .gauge-section, .charts-grid, .report-grid, .config-grid, .about-cards, .salas-grid { grid-template-columns: 1fr !important; }
+  .stats-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .challenge-grid { grid-template-columns: 1fr; }
+  .challenge-stat-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .challenge-form-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 768px) {
+  #sidebar { width: min(84vw, 320px); }
+  .main-wrap { margin-left: 0; }
+  .hamburger { display: block; flex: 0 0 auto; }
+  .topbar { height: auto; min-height: 58px; padding: .65rem .75rem; gap: .6rem; }
+  .topbar-title { font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-right { gap: .45rem; }
+  .sensor-pill { max-width: 38vw; padding: .3rem .55rem; }
+  .clock { display: none; }
+  .content { padding: .9rem .75rem calc(1.25rem + env(safe-area-inset-bottom)); }
+  .page-header { margin-bottom: 1rem; }
+  .page-header .btn-primary, .page-header .btn-secondary { width: 100%; justify-content: center; }
+  .page-header { display: grid; grid-template-columns: 1fr; }
+  .gauge-card, .scale-card, .config-card, .challenge-card { padding: 1rem; }
+  .gauge-svg { width: min(220px, 72vw); }
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: .7rem; }
+  .stat-card { padding: .85rem; gap: .7rem; }
+  .stat-val { font-size: 1.15rem; }
+  .stat-icon { width: 38px; height: 38px; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 560px; }
+  .challenge-hero { padding: 1rem; }
+  .challenge-hero h3 { font-size: 1.25rem; }
+  .challenge-hero-stat strong { font-size: 1.65rem; }
+  .leaderboard-row { grid-template-columns: 38px minmax(0,1fr); gap: .55rem; }
+  .leaderboard-row .score { grid-column: 2; text-align: left; display: inline-flex; align-items: baseline; gap: .45rem; }
+  .leaderboard-row .score + .score { margin-top: -.15rem; }
+  .challenge-admin-actions { flex-direction: column; }
+  .challenge-admin-actions button { width: 100%; min-height: 44px; }
+  .btn-primary, .btn-secondary, .btn-danger, .icon-btn { min-height: 44px; }
+  .nav-item { min-height: 46px; }
+  input, select, textarea { font-size: 16px !important; }
+}
+@media (max-width: 520px) {
+  .content { padding-left: .65rem; padding-right: .65rem; }
+  .stats-grid, .challenge-stat-grid, .challenge-form-grid { grid-template-columns: 1fr !important; }
+  .gauge-meta { flex-wrap: wrap; gap: .6rem 1rem; }
+  .scale-item { align-items: flex-start; flex-wrap: wrap; }
+  .si-range { min-width: 0; }
+  .challenge-live-pill { width: 100%; justify-content: center; }
+  .challenge-card-title { flex-wrap: wrap; }
+  .challenge-card-title small { width: 100%; margin-left: 0; }
+  .login-card, .register-card { width: calc(100vw - 1rem); max-width: none; }
+  .form-grid { grid-template-columns: 1fr !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+</style>
+<!-- ===== boot ===== -->
+  <div id="boot">
+    <div class="login-inner">
+      <div class="login-icon">
+        <div class="sound-wave"><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+      <p class="login-text">Inicializando Bom Ruido<span class="dots">...</span></p>
+    </div>
+  </div>
+
+  <!-- ===== LOGIN ===== -->
+  <div id="login-screen" class="hidden">
+    <div class="login-bg">
+      <div class="login-grid"></div>
+      <div class="login-orb orb1"></div>
+      <div class="login-orb orb2"></div>
+    </div>
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="logo-icon"><i class="fa-solid fa-wave-square"></i></div>
+        <h1>Bom Ruido</h1>
+        <p>Sistema Inteligente de Monitoramento de Ruído</p>
+      </div>
+      <div class="login-form">
+        <div class="form-group">
+          <label for="login-email"><i class="fa-solid fa-envelope"></i> E-mail</label>
+          <input type="email" id="login-email" placeholder="professor@escola.edu.br" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label for="login-senha"><i class="fa-solid fa-lock"></i> Senha</label>
+          <div class="input-pw">
+            <input type="password" id="login-senha" placeholder="••••••••" autocomplete="current-password" required />
+            <button type="button" class="toggle-pw" aria-label="Mostrar ou ocultar senha" onclick="togglePw()"><i class="fa-solid fa-eye" id="pw-icon"></i></button>
+          </div>
+        </div>
+        <div class="login-extras">
+          <label class="remember-me"><input type="checkbox" /> Lembrar acesso</label>
+          <a href="#" class="forgot">Esqueci a senha</a>
+        </div>
+        <button type="button" class="btn-login" onclick="doLogin()">
+          <span>Entrar no Sistema</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+        <div class="footer">Não possui conta? <button type="button" class="forgot" id="register-btn">Criar Conta</button></div><div id="login-error" class="chart-note" role="alert" aria-live="assertive" style="margin-top:.8rem"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CADASTRO ===== -->
+  <div id="register-screen" class="hidden">
+    <div class="login-bg" aria-hidden="true">
+      <div class="login-grid"></div>
+      <div class="login-orb orb1"></div>
+      <div class="login-orb orb2"></div>
+    </div>
+    <main class="login-card register-card" aria-labelledby="register-title">
+      <div class="login-logo">
+        <div class="logo-icon"><i class="fa-solid fa-user-plus"></i></div>
+        <h1 id="register-title">Criar sua conta</h1>
+        <p>Cadastre-se para acessar o Bom Ruido</p>
+      </div>
+      <form id="register-form" class="login-form" novalidate>
+        <div class="form-group">
+          <label for="register-name"><i class="fa-solid fa-user"></i> Nome completo</label>
+          <input type="text" id="register-name" placeholder="Seu nome completo" autocomplete="name" maxlength="80" required />
+        </div>
+        <div class="form-group">
+          <label for="register-email"><i class="fa-solid fa-envelope"></i> E-mail</label>
+          <input type="email" id="register-email" placeholder="seuemail@escola.edu.br" autocomplete="email" maxlength="120" required />
+        </div>
+        <div class="form-group">
+          <label for="register-role"><i class="fa-solid fa-user-shield"></i> Tipo de acesso</label>
+          <select id="register-role" class="config-input" required>
+            <option value="student">Aluno</option>
+            <option value="admin">Administrativo / Professor</option>
+          </select>
+          <p class="chart-note" style="margin-top:.4rem">Aluno: acesso somente ao painel dos sensores S10 da Sala Bili e ao Desafio das Salas. Administrativo: acesso completo.</p>
+        </div>
+        <div class="form-group hidden" id="admin-code-group">
+          <label for="register-admin-code"><i class="fa-solid fa-key"></i> Código administrativo</label>
+          <input type="password" id="register-admin-code" placeholder="Código fornecido pela escola" autocomplete="off" maxlength="120" />
+          <p class="chart-note" style="margin-top:.4rem">Por segurança, o cadastro de Administrativo/Professor exige um código da escola.</p>
+        </div>
+        <div class="form-group">
+          <label for="register-password"><i class="fa-solid fa-lock"></i> Senha</label>
+          <div class="input-pw">
+            <input type="password" id="register-password" placeholder="Mínimo de 8 caracteres" autocomplete="new-password" minlength="8" required />
+            <button type="button" class="toggle-pw" aria-label="Mostrar ou ocultar senha" onclick="toggleRegisterPw('register-password','register-pw-icon')"><i class="fa-solid fa-eye" id="register-pw-icon"></i></button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="register-password-confirm"><i class="fa-solid fa-shield-halved"></i> Confirmar senha</label>
+          <div class="input-pw">
+            <input type="password" id="register-password-confirm" placeholder="Repita sua senha" autocomplete="new-password" minlength="8" required />
+            <button type="button" class="toggle-pw" aria-label="Mostrar ou ocultar confirmação da senha" onclick="toggleRegisterPw('register-password-confirm','register-confirm-pw-icon')"><i class="fa-solid fa-eye" id="register-confirm-pw-icon"></i></button>
+          </div>
+        </div>
+        <div class="password-rules"><i class="fa-solid fa-circle-info"></i> Use pelo menos 8 caracteres. Sua senha não é armazenada em texto puro.</div>
+        <button type="submit" class="btn-login"><span>Criar Conta</span><i class="fa-solid fa-arrow-right"></i></button>
+        <div id="register-error" class="chart-note" role="alert" aria-live="assertive" style="margin-top:.8rem"></div>
+        <div class="footer">Já possui uma conta? <button type="button" class="forgot" id="back-login-btn">Voltar para o login</button></div>
+      </form>
+    </main>
+  </div>
+
+  <!-- ===== APP ===== -->
+  <div id="app" class="hidden">
+
+    <aside id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon"><i class="fa-solid fa-wave-square"></i></div>
+        <span>Bom Ruido</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-page="painel" onclick="goTo('painel',this)"><i class="fa-solid fa-gauge-high"></i><span>Painel</span></a>
+        <a href="#" class="nav-item" data-page="graficos" onclick="goTo('graficos',this)"><i class="fa-solid fa-chart-line"></i><span>Gráficos</span></a>
+        <a href="#" class="nav-item" data-page="salas" onclick="goTo('salas',this)"><i class="fa-solid fa-door-open"></i><span>Salas</span></a>
+        <a href="#" class="nav-item" data-page="alertas" onclick="goTo('alertas',this)"><i class="fa-solid fa-bell"></i><span>Alertas</span><span class="badge" id="badge-alertas">0</span></a>
+        <a href="#" class="nav-item" data-page="historico" onclick="goTo('historico',this)"><i class="fa-solid fa-clock-rotate-left"></i><span>Histórico</span></a>
+        <a href="#" class="nav-item" data-page="relatorios" onclick="goTo('relatorios',this)"><i class="fa-solid fa-file-chart-column"></i><span>Relatórios</span></a>
+        <a href="#" class="nav-item" data-page="sobre" onclick="goTo('sobre',this)"><i class="fa-solid fa-circle-info"></i><span>Sobre</span></a>
+        <a href="#" class="nav-item" data-page="config" onclick="goTo('config',this)"><i class="fa-solid fa-sliders"></i><span>Configurações</span></a>
+        <a href="#" class="nav-item" data-page="desafio" onclick="goTo('desafio',this)"><i class="fa-solid fa-trophy"></i><span>Desafio das Salas</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+        <div class="user-info"><strong>Prof. Erick</strong><small>Administrador</small></div>
+        <button class="btn-logout" aria-label="Sair do sistema" title="Sair do sistema" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i></button>
+      </div>
+    </aside>
+
+    <div class="main-wrap">
+      <header class="topbar">
+        <button class="hamburger" aria-label="Abrir menu de navegação" title="Abrir menu" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+        <div class="topbar-title" id="topbar-title">Painel</div>
+        <div class="topbar-right">
+          <div class="sensor-pill" id="sensor-pill"><span class="dot yellow"></span> <span id="sensor-pill-text">Modo não configurado</span></div>
+          <div class="clock" id="clock">00:00:00</div>
+        </div>
+      </header>
+
+      <div id="alert-banner" class="alert-banner hidden">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="alert-msg">Ruído elevado detectado!</span>
+        <button onclick="document.getElementById('alert-banner').classList.add('hidden')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <main class="content">
+
+        <!-- ===== PAINEL ===== -->
+        <section id="page-painel" class="page active">
+          <div class="page-header"><h2>Painel <span>— Monitoramento em Tempo Real</span></h2></div>
+
+          <div class="gauge-section">
+            <div class="gauge-card">
+              <div class="gauge-label" id="gauge-label">NÍVEL DE RUÍDO ATUAL — MÉDIA GERAL</div>
+              <div class="gauge-wrap">
+                <svg class="gauge-svg" viewBox="0 0 220 130">
+                  <path d="M20,120 A90,90 0 0,1 200,120" fill="none" stroke="#1a1f2e" stroke-width="16" stroke-linecap="round"/>
+                  <path id="gauge-arc" d="M20,120 A90,90 0 0,1 200,120" fill="none" stroke="url(#arcGrad)" stroke-width="16" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/>
+                  <defs>
+                    <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#00e676"/>
+                      <stop offset="50%" stop-color="#ffea00"/>
+                      <stop offset="100%" stop-color="#ff1744"/>
+                    </linearGradient>
+                  </defs>
+                  <text x="110" y="115" text-anchor="middle" fill="#fff" font-size="32" font-family="Space Mono" id="gauge-val">--</text>
+                  <text x="110" y="128" text-anchor="middle" fill="#6b7a99" font-size="10" font-family="DM Sans" id="gauge-unit">dB</text>
+                </svg>
+              </div>
+              <div class="gauge-status" id="gauge-status"><span class="status-dot"></span> <span id="status-text">Aguardando...</span></div>
+              <div class="gauge-meta">
+                <span><i class="fa-solid fa-rotate"></i> Atualizado há <span id="last-update">0s</span></span>
+                <span><i class="fa-solid fa-microchip"></i> <span id="hardware-status">[PRECISA SER CONFIGURADO]</span></span>
+              </div>
+            </div>
+
+            <div class="scale-card">
+              <h3>Escala de Referência</h3>
+              <div class="scale-items">
+                <div class="scale-item green"><span class="si-range"><span id="scale-silent-range">—</span></span><span class="si-label">Silencioso — classificação configurável</span></div>
+                <div class="scale-item yellow"><span class="si-range"><span id="scale-moderate-range">—</span></span><span class="si-label">Moderado — atenção necessária</span></div>
+                <div class="scale-item red"><span class="si-range"><span id="scale-critical-range">—</span></span><span class="si-label">Crítico — acima do limite configurado</span></div>
+              </div>
+              <div class="tea-notice">
+                <i class="fa-solid fa-brain"></i>
+                <p>O limite do <strong>Modo TEA</strong> é configurável. Este sistema não substitui avaliação clínica nem estabelece um limite médico.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon blue"><i class="fa-solid fa-waveform-lines"></i></div><div class="stat-info"><span class="stat-val" id="stat-avg">--</span><span class="stat-lbl">Média da Sessão (dB)</span></div></div>
+            <div class="stat-card"><div class="stat-icon red"><i class="fa-solid fa-arrow-up-right-dots"></i></div><div class="stat-info"><span class="stat-val" id="stat-peak">--</span><span class="stat-lbl">Pico Máximo (dB)</span></div></div>
+            <div class="stat-card"><div class="stat-icon yellow"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="stat-info"><span class="stat-val" id="stat-alerts">0</span><span class="stat-lbl">Alertas Hoje</span></div></div>
+            <div class="stat-card"><div class="stat-icon green"><i class="fa-solid fa-check-circle"></i></div><div class="stat-info"><span class="stat-val" id="stat-ok">--</span><span class="stat-lbl">Tempo em Nível OK</span></div></div>
+          </div>
+
+          <div class="mini-chart-card">
+            <div class="card-header-row">
+              <h3>Variação nos Últimos 60s (média geral)</h3>
+              <div class="live-badge"><span class="dot red pulse"></span> AO VIVO</div>
+            </div>
+            <canvas id="mini-chart" height="90"></canvas>
+          </div>
+        </section>
+
+        <!-- ===== GRÁFICOS ===== -->
+        <section id="page-graficos" class="page">
+          <div class="page-header"><h2>Gráficos <span>— Análise Visual</span></h2></div>
+          <div class="charts-grid">
+            <div class="chart-card span2">
+              <div class="card-header-row">
+                <h3><i class="fa-solid fa-chart-line"></i> Variação Real do Ruído por Sala</h3>
+                <select id="sala-filter-line" onchange="updateLineChart()"></select>
+              </div>
+              <canvas id="line-chart" height="110"></canvas>
+              <div class="chart-legend">
+                <span><i class="fa-solid fa-minus" style="color:var(--purple)"></i> Leitura real</span>
+                <span><i class="fa-solid fa-minus dashed"></i> Limite moderado</span>
+                <span><i class="fa-solid fa-minus" style="color:var(--red)"></i> Limite crítico</span>
+              </div>
+              <p class="chart-note">Cada sala mantém sua própria série histórica de leituras — o gráfico reflete os valores reais registrados por sensor, não uma estimativa.</p>
+            </div>
+            <div class="chart-card">
+              <div class="card-header-row"><h3><i class="fa-solid fa-chart-bar"></i> Média Real por Sala</h3></div>
+              <canvas id="bar-chart" height="200"></canvas>
+              <p class="chart-note">Média calculada sobre as últimas leituras registradas de cada sala.</p>
+            </div>
+            <div class="chart-card">
+              <div class="card-header-row"><h3><i class="fa-solid fa-chart-pie"></i> Distribuição de Níveis</h3></div>
+              <canvas id="doughnut-chart" height="200"></canvas>
+              <div class="chart-legend">
+                <span><i class="fa-solid fa-circle green"></i> Silencioso</span>
+                <span><i class="fa-solid fa-circle yellow"></i> Moderado</span>
+                <span><i class="fa-solid fa-circle red"></i> Crítico</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== SALAS ===== -->
+        <section id="page-salas" class="page">
+          <div class="page-header"><h2>Salas <span>— Gerenciamento</span></h2></div>
+          <div class="salas-grid" id="salas-grid"></div>
+        </section>
+
+        <!-- ===== ALERTAS ===== -->
+        <section id="page-alertas" class="page">
+          <div class="page-header">
+            <h2>Alertas <span>— Central de Notificações</span></h2>
+            <button class="btn-secondary" onclick="clearAlerts()"><i class="fa-solid fa-trash"></i> Limpar</button>
+          </div>
+          <div id="alerts-list" class="alerts-list">
+            <div class="empty-state"><i class="fa-solid fa-bell-slash"></i><p>Nenhum alerta registrado</p></div>
+          </div>
+        </section>
+
+        <!-- ===== HISTÓRICO ===== -->
+        <section id="page-historico" class="page">
+          <div class="page-header"><h2>Histórico <span>— Registros</span></h2></div>
+          <div class="table-card">
+            <div class="table-controls">
+              <div class="search-wrap">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" id="hist-search" placeholder="Buscar por sala ou status..." oninput="filterTable()" />
+              </div>
+              <div class="filter-group">
+                <label class="sr-only" for="hist-filter-sala">Filtrar por sala</label>
+                <select id="hist-filter-sala" onchange="filterTable()" aria-label="Filtrar por sala"><option value="">Todas as salas</option></select>
+                <label class="sr-only" for="hist-filter-status">Filtrar por status</label>
+                <select id="hist-filter-status" onchange="filterTable()" aria-label="Filtrar por status">
+                  <option value="">Todos os status</option>
+                  <option value="Silencioso">Silencioso</option>
+                  <option value="Moderado">Moderado</option>
+                  <option value="Crítico">Crítico</option>
+                </select>
+                <label class="sr-only" for="hist-filter-from">Data inicial</label>
+                <input type="date" id="hist-filter-from" onchange="filterTable()" aria-label="Data inicial" />
+                <label class="sr-only" for="hist-filter-to">Data final</label>
+                <input type="date" id="hist-filter-to" onchange="filterTable()" aria-label="Data final" />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="hist-table">
+                <thead>
+                  <tr>
+                    <th onclick="sortTable(0)">Data <i class="fa-solid fa-sort"></i></th>
+                    <th onclick="sortTable(1)">Hora <i class="fa-solid fa-sort"></i></th>
+                    <th onclick="sortTable(2)">Sensor <i class="fa-solid fa-sort"></i></th>
+                    <th onclick="sortTable(3)">Sala <i class="fa-solid fa-sort"></i></th>
+                    <th onclick="sortTable(4)">Nível (dB) <i class="fa-solid fa-sort"></i></th>
+                    <th onclick="sortTable(5)">Status <i class="fa-solid fa-sort"></i></th>
+                  </tr>
+                </thead>
+                <tbody id="hist-body"></tbody>
+              </table>
+            </div>
+            <div class="table-footer">
+              <span id="table-count">0 registros</span>
+              <div class="pagination" id="pagination"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== RELATÓRIOS ===== -->
+        <section id="page-relatorios" class="page">
+          <div class="page-header">
+            <h2>Relatórios <span>— Análise Consolidada</span></h2>
+            <button class="btn-primary" onclick="exportReport()"><i class="fa-solid fa-download"></i> Exportar</button>
+          </div>
+          <div class="report-grid">
+            <div class="report-card blue"><i class="fa-solid fa-calculator"></i><div class="report-val" id="rep-avg">--</div><div class="report-lbl">Média Diária (dB)</div></div>
+            <div class="report-card red"><i class="fa-solid fa-bolt"></i><div class="report-val" id="rep-peak">--</div><div class="report-lbl">Pico Máximo (dB)</div></div>
+            <div class="report-card yellow"><i class="fa-solid fa-clock"></i><div class="report-val" id="rep-busiest">--</div><div class="report-lbl">Horário Mais Barulhento</div></div>
+            <div class="report-card purple"><i class="fa-solid fa-hourglass-half"></i><div class="report-val" id="rep-critical">--</div><div class="report-lbl">Tempo em Nível Crítico</div></div>
+          </div>
+          <div class="chart-card" style="margin-top:1.5rem">
+            <div class="card-header-row"><h3><i class="fa-solid fa-chart-line"></i> Histórico Real — Média por Hora</h3></div>
+            <canvas id="report-chart" height="100"></canvas>
+            <p class="chart-note">Cada barra é a média real das leituras registradas naquela hora (barras ausentes = sem registros no período).</p>
+          </div>
+          <div class="report-table-card">
+            <h3>Resumo por Sala</h3>
+            <div class="table-wrap">
+              <table><thead><tr><th>Sala</th><th>Média (dB)</th><th>Pico (dB)</th><th>Alertas</th><th>Status Geral</th></tr></thead><tbody id="rep-sala-body"></tbody></table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== SOBRE ===== -->
+        <section id="page-sobre" class="page">
+          <div class="page-header"><h2>Sobre o Projeto</h2></div>
+          <div class="about-hero">
+            <div class="about-hero-text">
+              <div class="about-tag">Trabalho de Conclusão de Curso</div>
+              <h1>Sistema Inteligente de<br/>Monitoramento de Ruído</h1>
+              <p>Uma solução tecnológica para registrar e visualizar níveis de ruído no ambiente escolar, com uma configuração preventiva opcional para o Modo TEA.</p>
+            </div>
+            <div class="about-hero-art">
+              <div class="art-circles">
+                <div class="ac ac1"></div><div class="ac ac2"></div><div class="ac ac3"></div>
+                <i class="fa-solid fa-wave-square art-icon"></i>
+              </div>
+            </div>
+          </div>
+          <div class="about-cards">
+            <div class="about-card"><div class="about-card-icon blue"><i class="fa-solid fa-bullseye"></i></div><h3>Objetivo</h3><p>Monitorar em tempo real os níveis de ruído nas salas de aula utilizando sensores conectados a um microcontrolador ESP32, fornecendo dados precisos para professores e gestores.</p></div>
+            <div class="about-card"><div class="about-card-icon green"><i class="fa-solid fa-volume-xmark"></i></div><h3>Controle de Ruído</h3><p>O sistema registra níveis de ruído, classifica as leituras conforme limites configurados e fornece histórico para acompanhamento do ambiente escolar.</p></div>
+            <div class="about-card"><div class="about-card-icon purple"><i class="fa-solid fa-brain"></i></div><h3>Modo TEA</h3><p>O Modo TEA funciona como uma configuração preventiva do sistema. O limite é definido pelo usuário e não representa diagnóstico, recomendação clínica ou limite médico.</p></div>
+            <div class="about-card"><div class="about-card-icon yellow"><i class="fa-solid fa-graduation-cap"></i></div><h3>Benefícios</h3><p>Alertas em tempo real, histórico de dados, relatórios para gestores escolares e uma interface intuitiva que transforma dados de sensores em ações pedagógicas concretas.</p></div>
+          </div>
+        </section>
+
+
+        <!-- ===== DESAFIO DAS SALAS ===== -->
+        <section id="page-desafio" class="page challenge-page">
+          <div class="page-header challenge-header">
+            <div>
+              <h2><i class="fa-solid fa-trophy" style="color:var(--yellow)"></i> Desafio das Salas <span>— Competição de silêncio</span></h2>
+              <p class="chart-note">A sala acumula pontos por permanecer dentro do limite de ruído. O ranking é calculado com os dados registrados no servidor.</p>
+            </div>
+            <div class="challenge-live-pill"><span class="dot green"></span><span id="challenge-status">Carregando desafio...</span></div>
+          </div>
+
+          <div class="challenge-hero">
+            <div>
+              <div class="challenge-kicker">🏆 COMPETIÇÃO ATIVA</div>
+              <h3 id="challenge-title">Desafio das Salas</h3>
+              <p id="challenge-period">Aguardando configuração do período.</p>
+            </div>
+            <div class="challenge-hero-stat"><strong id="challenge-days">--</strong><span>dias restantes</span></div>
+          </div>
+
+          <div class="challenge-grid">
+            <section class="challenge-card leaderboard-card">
+              <div class="challenge-card-title"><i class="fa-solid fa-ranking-star"></i><span>Ranking</span><small id="challenge-updated">--</small></div>
+              <div id="challenge-leaderboard" class="leaderboard-list">
+                <div class="challenge-empty">Carregando ranking...</div>
+              </div>
+            </section>
+
+            <aside class="challenge-side">
+              <div class="challenge-card rules-card">
+                <div class="challenge-card-title"><i class="fa-solid fa-list-check"></i><span>Regras</span></div>
+                <ul id="challenge-rules" class="challenge-rules"></ul>
+              </div>
+              <div class="challenge-card prize-card">
+                <div class="challenge-card-title"><i class="fa-solid fa-gift"></i><span>Premiação</span></div>
+                <div id="challenge-prizes" class="challenge-prizes"></div>
+              </div>
+            </aside>
+          </div>
+
+          <section class="challenge-card challenge-stats">
+            <div class="challenge-card-title"><i class="fa-solid fa-chart-simple"></i><span>Resumo do desafio</span></div>
+            <div class="challenge-stat-grid">
+              <div><span>🥇 Líder</span><strong id="challenge-leader">--</strong></div>
+              <div><span>🤫 Melhor tempo seguro</span><strong id="challenge-best-safe">--</strong></div>
+              <div><span>⭐ Maior sequência</span><strong id="challenge-best-streak">--</strong></div>
+              <div><span>🚨 Menos excessos</span><strong id="challenge-best-control">--</strong></div>
+            </div>
+          </section>
+
+          <section id="challenge-admin-panel" class="challenge-card challenge-admin hidden">
+            <div class="challenge-card-title"><i class="fa-solid fa-shield-halved"></i><span>Configuração administrativa</span></div>
+            <div class="challenge-form-grid">
+              <label>Nome do desafio<input id="challenge-admin-title" class="config-input" maxlength="80"></label>
+              <label>Início<input id="challenge-admin-start" class="config-input" type="datetime-local"></label>
+              <label>Fim<input id="challenge-admin-end" class="config-input" type="datetime-local"></label>
+              <label>Pontos por minuto seguro<input id="challenge-admin-safe" class="config-input" type="number" min="0" step="0.1"></label>
+              <label>Penalidade por minuto moderado<input id="challenge-admin-moderate" class="config-input" type="number" min="0" step="0.1"></label>
+              <label>Penalidade por minuto crítico<input id="challenge-admin-critical" class="config-input" type="number" min="0" step="0.1"></label>
+              <label>Bônus a cada 10 min de sequência<input id="challenge-admin-streak" class="config-input" type="number" min="0" step="1"></label>
+              <label>Prêmio 1º lugar<input id="challenge-prize-1" class="config-input" maxlength="120"></label>
+              <label>Prêmio 2º lugar<input id="challenge-prize-2" class="config-input" maxlength="120"></label>
+              <label>Prêmio 3º lugar<input id="challenge-prize-3" class="config-input" maxlength="120"></label>
+            </div>
+            <div class="challenge-admin-actions">
+              <button class="btn-primary" type="button" onclick="saveChallengeConfig()"><i class="fa-solid fa-floppy-disk"></i> Salvar desafio</button>
+              <button class="btn-secondary" type="button" onclick="loadChallenge()"><i class="fa-solid fa-rotate"></i> Atualizar ranking</button>
+            </div>
+            <p class="chart-note">O ranking considera as leituras do período. Intervalos sem leitura não geram pontos, evitando premiar uma sala por ficar offline.</p>
+          </section>
+        </section>
+
+        <!-- ===== CONFIG ===== -->
+        <section id="page-config" class="page">
+          <div class="page-header">
+            <h2>Configurações <span>— Sistema</span></h2>
+            <button class="btn-primary" onclick="saveConfig()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+          </div>
+          <div class="config-grid">
+            <div class="config-card">
+              <h3><i class="fa-solid fa-sliders"></i> Limites de Alerta</h3>
+              <div class="config-field">
+                <label>Limite Moderado (dB)</label>
+                <div class="range-wrap"><input type="range" id="cfg-moderate" min="40" max="80" value="55" oninput="updateRangeLabel('cfg-moderate','lbl-moderate')" /><span class="range-val" id="lbl-moderate">55 dB</span></div>
+              </div>
+              <div class="config-field">
+                <label>Limite Crítico (dB)</label>
+                <div class="range-wrap"><input type="range" id="cfg-critical" min="50" max="100" value="70" oninput="updateRangeLabel('cfg-critical','lbl-critical')" /><span class="range-val" id="lbl-critical">70 dB</span></div>
+              </div>
+              <div class="config-field">
+                <label>Limite TEA (dB)</label>
+                <div class="range-wrap"><input type="range" id="cfg-tea" min="30" max="60" value="50" oninput="updateRangeLabel('cfg-tea','lbl-tea')" /><span class="range-val" id="lbl-tea">50 dB</span></div>
+              </div>
+            </div>
+            <div class="config-card">
+              <h3><i class="fa-solid fa-door-open"></i> Salas Cadastradas</h3>
+              <div class="config-summary">
+                <div><strong id="cfg-room-count">0</strong><span>salas ativas no sistema</span></div>
+                <button class="btn-secondary" onclick="goTo('salas', document.querySelector('[data-page=salas]'))"><i class="fa-solid fa-door-open"></i> Gerenciar</button>
+              </div>
+              <p class="chart-note" style="margin-top:.8rem">Adicionar, renomear ou excluir salas é feito diretamente na página <strong>Salas</strong>.</p>
+            </div>
+            <div class="config-card">
+              <h3><i class="fa-solid fa-tower-broadcast"></i> Fonte de Dados</h3>
+              <div class="config-field">
+                <label for="cfg-mode">Modo de operação</label>
+                <select class="config-input" id="cfg-mode" aria-describedby="mode-help">
+                  <option value="simulation">Modo Simulação</option>
+                  <option value="microphone">Microfone do Computador</option>
+                  <option value="real">Sensor S10 / API</option>
+                </select>
+                <p id="mode-help" class="chart-note">Simulação gera dados somente para testes. O modo Microfone lê o microfone deste computador. O modo Sensor Real recebe leituras pela API.</p>
+              </div>
+              <div class="config-field">
+                <label for="cfg-mic-device">Microfone de entrada</label>
+                <select class="config-input" id="cfg-mic-device">
+                  <option value="">Microfone padrão do computador</option>
+                </select>
+                <p class="chart-note">Conecte o microfone USB e selecione-o aqui. Se ele for o dispositivo padrão do sistema, deixe a opção automática.</p>
+                <button type="button" class="btn-primary" id="btn-activate-microphone" style="margin-top:.7rem" onclick="startMicrophone()">
+                  <i class="fa-solid fa-microphone"></i> Ativar microfone
+                </button>
+                <p class="chart-note">No celular ou tablet, o navegador pedirá permissão. Para acesso remoto, o site precisa estar publicado em HTTPS. O microfone pode permanecer desconectado até chegar; a configuração fica salva.</p>
+              </div>
+              <div class="config-field">
+                <label for="cfg-microphone-room">Sala monitorada pelo microfone</label>
+                <select class="config-input" id="cfg-microphone-room">
+                  <option value="">Primeira sala ativa</option>
+                </select>
+                <p class="chart-note">Um microfone USB representa uma fonte de áudio por vez. Escolha qual sala receberá as leituras.</p>
+              </div>
+              <div class="config-field">
+                <label for="cfg-api-url">Fonte de leituras do S10</label>
+                <input class="config-input" id="cfg-api-url" type="text" inputmode="url" placeholder="/api/s10/latest" autocomplete="off" />
+                <p class="chart-note">Padrão: <strong>/api/s10/latest</strong>. O S10/ESP32 envia as medições para <strong>/api/s10/ingest</strong> usando o cabeçalho <strong>x-s10-key</strong>. Use HTTPS quando publicar o servidor.</p>
+              </div>
+              <div class="config-summary"><div><strong id="cfg-api-status">Offline</strong><span id="cfg-api-status-detail">API S10 aguardando leituras</span></div></div>
+              <div class="config-field" style="margin-top:1rem">
+                <label for="cfg-mic-offset">Calibração do microfone (offset)</label>
+                <input class="config-input" id="cfg-mic-offset" type="number" min="-200" max="200" step="0.1" value="0" inputmode="decimal" />
+                <p class="chart-note" id="mic-calibration-status" style="margin-top:.4rem">Ainda não calibrado</p>
+                <button type="button" class="btn-secondary" style="margin-top:.7rem" onclick="calibrateMicrophone()"><i class="fa-solid fa-gauge-high"></i> Calibrar com referência</button>
+                <p class="chart-note">Sem calibração, o sistema mede dBFS (nível relativo do sinal). Para apresentar dB estimado, informe um offset obtido por calibração com equipamento de referência. Não há um valor padrão universal.</p>
+              </div>
+            </div>
+            <div class="config-card">
+              <h3><i class="fa-solid fa-bell"></i> Notificações</h3>
+              <div class="toggle-field"><label>Alertas Sonoros</label><label class="toggle"><input type="checkbox" id="cfg-sound" checked /><span class="slider"></span></label></div>
+              <div class="toggle-field"><label>Alerta Visual (Banner)</label><label class="toggle"><input type="checkbox" id="cfg-banner" checked /><span class="slider"></span></label></div>
+              <div class="toggle-field"><label>Modo TEA (Sensibilidade +)</label><label class="toggle"><input type="checkbox" id="cfg-tea-mode" /><span class="slider"></span></label></div>
+            </div>
+            <div class="config-card">
+              <h3><i class="fa-solid fa-rotate"></i> Intervalo de Atualização</h3>
+              <div class="config-field">
+                <label>A cada (segundos)</label>
+                <div class="range-wrap"><input type="range" id="cfg-interval" min="1" max="10" value="3" oninput="updateRangeLabel('cfg-interval','lbl-interval')" /><span class="range-val" id="lbl-interval">3s</span></div>
+              </div>
+              <div class="config-field" style="margin-top:1.5rem">
+                <label>Versão do Sistema</label>
+                <div class="version-info">v4.1 — banco remoto + acesso por perfil + desafio + responsivo</div><p class="chart-note">Banco remoto: PostgreSQL via API. Os dados ficam no servidor e continuam disponíveis mesmo trocando de computador.</p><p class="chart-note">S10: pronto para receber leituras pela API configurada. A calibração física do sensor depende do modelo e de um equipamento de referência.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+  <script>
+    /* Bom Ruido — JavaScript principal
+ * Persistência: IndexedDB
+ * Autenticação local: PBKDF2 + sessionStorage
+ * Modo real: leitura via endpoint HTTP configurado pelo usuário.
+ *
+ * Contrato mínimo de leitura recebido pela API:
+ * {
+ *   "sensor": "identificador-do-sensor",
+ *   "sala": "nome-da-sala-ou-id",
+ *   "db": 63.4,
+ *   "dataHora": "2026-08-15T14:40:00-03:00",
+ *   "status": "Moderado"
+ * }
+ *
+ * [PRECISA SER CONFIGURADO]
+ * - URL real da API
+ * - Hardware/sensor físico
+ * - política de autenticação da API, se existir
+ * - endpoint/contrato do backend, caso a escola possua um
+ */
+
+'use strict';
+
+const ROOM_COLORS = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ec4899','#14b8a6','#f97316','#6366f1'];
+const DB_NAME = 'bom-ruido-db';
+const DB_VERSION = 4;
+const STORES = {
+  users: 'users',                 // login
+  cadastro: 'cadastro',           // cadastro
+  escolas: 'escolas',             // escolas
+  rooms: 'rooms',                 // salas
+  sensors: 'sensors',             // sensores
+  readings: 'readings',            // medicoes
+  alerts: 'alerts',               // alertas
+  modifications: 'modificacoes',  // modificacoes
+  config: 'config'
+};
+const MAX_CHART_POINTS = 120;
+const DEFAULT_CONFIG = Object.freeze({
+  moderate: 55,
+  critical: 70,
+  tea: 50,
+  sound: true,
+  banner: true,
+  teaMode: false,
+  mode: 'microphone',
+  interval: 2,
+  apiUrl: '',
+  micCalibrationOffset: 100,
+  micDeviceId: '',
+  microphoneRoomId: '',
+  micCalibrated: false,
+  micCalibrationUpdatedAt: null
+});
+
+const state = {
+  user: null,
+  currentDb: null,
+  sessionStartedAt: null,
+  sessionReadingIds: new Set(),
+  sessionData: [],
+  historyData: [],
+  alerts: [],
+  rooms: [],
+  sensors: [],
+  cfg: { ...DEFAULT_CONFIG },
+  timers: { update: null, api: null, lastUpdate: null, clock: null },
+  lastReadingAt: null,
+  lastAlertKeys: new Set(),
+  histPage: 1,
+  histPageSize: 12,
+  histFiltered: [],
+  histSortCol: -1,
+  histSortAsc: true,
+  apiOnline: false,
+  chartsInitialized: false,
+  microphone: { stream: null, context: null, analyser: null, buffer: null, sampleRate: 0, active: false, permission: 'unknown', deviceId: '' }
+};
+
+let miniChart = null;
+let lineChart = null;
+let barChart = null;
+let doughnutChart = null;
+let reportChart = null;
+
+const API_BASE = '';
+let apiToken = '';
+
+function getSessionEnvelope() {
+  try { return JSON.parse(sessionStorage.getItem('bomRuidoSession') || 'null'); } catch { return null; }
+}
+
+function localSessionUser() {
+  const env = getSessionEnvelope();
+  return env?.user || null;
+}
+
+async function apiRequest(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  const token = apiToken || getSessionEnvelope()?.token || '';
+  if (token) headers.Authorization = `Bearer ${token}`;
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...options, method, headers, credentials: 'same-origin' });
+  } catch (error) {
+    throw new Error('Não foi possível conectar ao servidor. Verifique a conexão.');
+  }
+  let payload = {};
+  try { payload = await response.json(); } catch {}
+  if (!response.ok) throw new Error(payload.error || 'Operação não autorizada.');
+  return payload;
+}
+
+function cleanId(v){ return String(v||'').trim().slice(0,80); }
+async function apiHealthCheck() { const result = await apiRequest('/api/health'); return result?.ok === true; }
+
+document.addEventListener('DOMContentLoaded', bootstrap);
+
+async function bootstrap() {
+  bindAccessibilityEvents();
+  startClock();
+  try {
+    await apiHealthCheck();
+    await openDatabase();
+    await restoreSession();
+    await loadConfig();
+    updateConfigForm();
+    setTimeout(() => {
+      document.getElementById('boot')?.classList.add('hidden');
+      if (state.user) {
+        showApp();
+        initApp().catch(handleFatalError);
+      } else {
+        document.getElementById('login-screen')?.classList.remove('hidden');
+        showLoginError('');
+      }
+    }, 350);
+  } catch (error) {
+    console.error(error);
+    document.getElementById('boot')?.classList.add('hidden');
+    document.getElementById('login-screen')?.classList.remove('hidden');
+    showLoginError('Não foi possível inicializar o armazenamento local.');
+  }
+}
+
+function bindAccessibilityEvents() {
+  const loginEmail = document.getElementById('login-email');
+  const loginSenha = document.getElementById('login-senha');
+  loginEmail?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  loginSenha?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('register-btn')?.addEventListener('click', showRegisterScreen);
+  document.getElementById('back-login-btn')?.addEventListener('click', showLoginScreen);
+  document.getElementById('register-form')?.addEventListener('submit', e => { e.preventDefault(); registerUser(); });
+  document.getElementById('register-role')?.addEventListener('change', updateAdminCodeField);
+  document.querySelector('.forgot')?.addEventListener('click', e => { e.preventDefault(); showToast('Recuperação de senha [PRECISA SER CONFIGURADO].', 'yellow'); });
+  document.querySelectorAll('.nav-item').forEach(link => {
+    link.addEventListener('click', e => e.preventDefault());
+  });
+}
+
+function startClock() {
+  const tick = () => setText('clock', new Date().toLocaleTimeString('pt-BR'));
+  tick();
+  state.timers.clock = setInterval(tick, 1000);
+}
+
+function togglePw() {
+  const input = document.getElementById('login-senha');
+  const icon = document.getElementById('pw-icon');
+  if (!input || !icon) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  icon.classList.toggle('fa-eye', !show);
+  icon.classList.toggle('fa-eye-slash', show);
+}
+
+/* =========================
+   IndexedDB
+   ========================= */
+let dbPromise = null;
+
+function openDatabase() {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(request.error);
+    request.onupgradeneeded = event => {
+      const db = event.target.result;
+      createStore(db, STORES.users, 'id', 'email');
+      createStore(db, STORES.cadastro, 'id', 'email');
+      createStore(db, STORES.escolas, 'id');
+      createStore(db, STORES.rooms, 'id', 'escolaId');
+      createStore(db, STORES.sensors, 'id', 'salaId');
+      createStore(db, STORES.readings, 'id', 'salaId', 'dataHora');
+      createStore(db, STORES.alerts, 'id', 'salaId', 'dataHora');
+      createStore(db, STORES.modifications, 'id', 'cadastroId', 'dataHora');
+      createStore(db, STORES.config, 'id', 'userId');
+    };
+    request.onsuccess = () => resolve(request.result);
+  });
+  return dbPromise;
+}
+
+function createStore(db, name, keyPath, indexField, timestampField) {
+  if (db.objectStoreNames.contains(name)) return;
+  const store = db.createObjectStore(name, { keyPath });
+  if (indexField) store.createIndex(indexField, indexField, { unique: false });
+  if (timestampField) store.createIndex(timestampField, timestampField, { unique: false });
+}
+
+function id() {
+  return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function dbRequest(storeName, mode, operation) {
+  return openDatabase().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, mode);
+    const store = tx.objectStore(storeName);
+    let request;
+    try { request = operation(store); }
+    catch (error) { reject(error); return; }
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  }));
+}
+
+function putRecord(store, value) { return dbRequest(store, 'readwrite', s => s.put(value)); }
+function deleteRecord(store, key) { return dbRequest(store, 'readwrite', s => s.delete(key)); }
+function getRecord(store, key) { return dbRequest(store, 'readonly', s => s.get(key)); }
+function getAll(store) { return dbRequest(store, 'readonly', s => s.getAll()); }
+
+async function getByIndex(store, indexName, value) {
+  return dbRequest(store, 'readonly', s => s.index(indexName).getAll(value));
+}
+
+/* =========================
+   Autenticação
+   ========================= */
+function showRegisterScreen() {
+  document.getElementById('login-screen')?.classList.add('hidden');
+  document.getElementById('register-screen')?.classList.remove('hidden');
+  clearRegisterError();
+  updateAdminCodeField();
+  document.getElementById('register-name')?.focus();
+}
+
+function showLoginScreen() {
+  document.getElementById('register-screen')?.classList.add('hidden');
+  document.getElementById('login-screen')?.classList.remove('hidden');
+  clearRegisterError();
+  document.getElementById('login-email')?.focus();
+}
+
+function clearRegisterError() { setText('register-error', ''); }
+function showRegisterError(message) { setText('register-error', message); }
+
+function toggleRegisterPw(inputId, iconId) {
+  const input = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  if (!input || !icon) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  icon.classList.toggle('fa-eye', !show);
+  icon.classList.toggle('fa-eye-slash', show);
+}
+
+function updateAdminCodeField() {
+  const role = document.getElementById('register-role')?.value || 'student';
+  const group = document.getElementById('admin-code-group');
+  const input = document.getElementById('register-admin-code');
+  const show = role === 'admin';
+  group?.classList.toggle('hidden', !show);
+  if (input) input.required = show;
+  if (!show && input) input.value = '';
+}
+
+async function registerUser() {
+  clearRegisterError();
+  const name = sanitizePlain(document.getElementById('register-name')?.value || '', 80);
+  const email = normalizeEmail(document.getElementById('register-email')?.value || '');
+  const password = document.getElementById('register-password')?.value || '';
+  const confirmation = document.getElementById('register-password-confirm')?.value || '';
+  const role = document.getElementById('register-role')?.value || 'student';
+  const adminCode = document.getElementById('register-admin-code')?.value || '';
+
+  if (name.length < 2) return showRegisterError('Informe seu nome completo.');
+  if (!isValidEmail(email)) return showRegisterError('Informe um e-mail válido.');
+  if (password.length < 8) return showRegisterError('A senha deve ter pelo menos 8 caracteres.');
+  if (password !== confirmation) return showRegisterError('As senhas não coincidem.');
+  if (role === 'admin' && !adminCode) return showRegisterError('Informe o código administrativo da escola.');
+
+  try {
+    await apiRequest('/api/auth/register', { method: 'POST', body: JSON.stringify({ nome: name, email, senha: password, role, adminCode }) });
+    document.getElementById('login-email').value = email;
+    document.getElementById('login-senha').value = '';
+    document.getElementById('register-form')?.reset();
+    showLoginScreen();
+    showLoginError('Conta criada no banco. Entre com seu e-mail e senha.');
+  } catch (error) {
+    console.error(error);
+    showRegisterError(error?.message || 'Não foi possível criar a conta.');
+  }
+}
+
+async function doLogin() {
+  clearLoginError();
+  const email = normalizeEmail(document.getElementById('login-email')?.value || '');
+  const password = document.getElementById('login-senha')?.value || '';
+
+  if (!isValidEmail(email) || !password) {
+    showLoginError('Informe um e-mail válido e uma senha.');
+    shakeCard();
+    return;
+  }
+
+  try {
+    const result = await apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, senha: password })
+    });
+    apiToken = result.token;
+    const user = result.user;
+    state.user = { id: user.id, name: user.nome, email: user.email, role: user.cargo || 'Aluno', escolaId: user.escolaId, isAdmin: user.role === 'admin' || user.cargo === 'Administrativo' };
+    sessionStorage.setItem('bomRuidoSession', JSON.stringify({ token: apiToken, user: state.user }));
+    showLoginError('');
+    showApp();
+    await initApp();
+  } catch (error) {
+    console.error(error);
+    showLoginError(error?.message || 'Não foi possível validar o login.');
+  }
+}
+
+async function restoreSession() {
+  const envelope = getSessionEnvelope();
+  if (!envelope?.user) return;
+  apiToken = envelope.token || '';
+  state.user = envelope.user;
+}
+
+async function doLogout() {
+  apiToken = '';
+  stopDataLoop();
+  sessionStorage.removeItem('bomRuidoSession');
+  state.user = null;
+  state.currentDb = null;
+  state.sessionData = [];
+  state.sessionReadingIds.clear();
+  state.historyData = [];
+  state.alerts = [];
+  state.rooms = [];
+  state.sensors = [];
+  state.lastAlertKeys.clear();
+  document.getElementById('app')?.classList.add('hidden');
+  document.getElementById('login-screen')?.classList.remove('hidden');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-senha').value = '';
+  clearLoginError();
+}
+
+function showApp() {
+  document.getElementById('login-screen')?.classList.add('hidden');
+  document.getElementById('app')?.classList.remove('hidden');
+  updateUserUI();
+  applyRoleAccess();
+}
+
+function isAdminUser() { return state.user?.isAdmin === true || state.user?.role === 'Administrativo' || state.user?.role === 'Administrador'; }
+function isStudentUser() { return !!state.user && !isAdminUser(); }
+function applyRoleAccess() {
+  const allowedStudentPages = new Set(['painel','desafio']);
+  document.querySelectorAll('.nav-item').forEach(link => {
+    const page = link.dataset.page;
+    const visible = isAdminUser() || allowedStudentPages.has(page);
+    link.classList.toggle('hidden', !visible);
+  });
+  if (isStudentUser()) {
+    document.getElementById('page-salas')?.classList.remove('active');
+    document.getElementById('page-config')?.classList.remove('active');
+    document.getElementById('page-alertas')?.classList.remove('active');
+    document.getElementById('page-historico')?.classList.remove('active');
+    document.getElementById('page-relatorios')?.classList.remove('active');
+    document.getElementById('page-graficos')?.classList.remove('active');
+    document.getElementById('page-sobre')?.classList.remove('active');
+    document.getElementById('page-painel')?.classList.add('active');
+    setText('topbar-title','Painel');
+  }
+}
+
+function updateUserUI() {
+  const user = state.user;
+  if (!user) return;
+  const strong = document.querySelector('.user-info strong');
+  const small = document.querySelector('.user-info small');
+  if (strong) strong.textContent = user.name;
+  if (small) small.textContent = user.role || 'Usuário';
+}
+
+async function derivePasswordHash(password, salt) {
+  const encoder = new TextEncoder();
+  const baseKey = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  return new Uint8Array(await crypto.subtle.deriveBits({
+    name: 'PBKDF2',
+    salt,
+    iterations: 120000,
+    hash: 'SHA-256'
+  }, baseKey, 256));
+}
+
+function timingSafeEqual(a, b) {
+  if (!a || !b || a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) result |= a[i] ^ b[i];
+  return result === 0;
+}
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary);
+}
+function base64ToBytes(value) {
+  const binary = atob(value);
+  return Uint8Array.from(binary, c => c.charCodeAt(0));
+}
+function normalizeEmail(value) { return value.trim().toLowerCase(); }
+function isValidEmail(value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); }
+function sanitizePlain(value, max = 100) {
+  return String(value).replace(/[<>]/g, '').trim().slice(0, max);
+}
+
+/* =========================
+   Inicialização e configuração
+   ========================= */
+async function loadConfig() {
+  if (!state.user) return;
+  try {
+    const result = await apiRequest('/api/bootstrap');
+    if (result.config && Object.keys(result.config).length) {
+      state.cfg = { ...DEFAULT_CONFIG, ...result.config };
+    } else {
+      const local = await getRecord(STORES.config, state.user.id);
+      if (local?.value) state.cfg = { ...DEFAULT_CONFIG, ...local.value };
+    }
+  } catch (error) {
+    console.warn('Configuração remota indisponível:', error);
+  }
+}
+
+async function persistConfig() {
+  await apiRequest('/api/config', { method: 'PUT', body: JSON.stringify({ ...state.cfg }) });
+  await putRecord(STORES.config, { id: state.user.id, value: { ...state.cfg } });
+}
+
+function updateConfigForm() {
+  setValue('cfg-moderate', state.cfg.moderate);
+  setValue('cfg-critical', state.cfg.critical);
+  setValue('cfg-tea', state.cfg.tea);
+  setChecked('cfg-sound', state.cfg.sound);
+  setChecked('cfg-banner', state.cfg.banner);
+  setChecked('cfg-tea-mode', state.cfg.teaMode);
+  setChecked('cfg-simulate', state.cfg.mode === 'simulation');
+  setValue('cfg-interval', state.cfg.interval);
+  setValue('cfg-mic-offset', state.cfg.micCalibrationOffset ?? 100);
+  setText('mic-calibration-status', state.cfg.micCalibrated ? `Calibrado em ${formatDateTime(state.cfg.micCalibrationUpdatedAt)}` : 'Ainda não calibrado');
+  setValue('cfg-mic-device', state.cfg.micDeviceId ?? '');
+  refreshMicrophoneRoomSelector();
+  populateMicrophoneDevices().catch(() => {});
+  setValue('cfg-mode', state.cfg.mode);
+  setValue('cfg-api-url', state.cfg.apiUrl);
+  updateRangeLabel('cfg-moderate', 'lbl-moderate');
+  updateRangeLabel('cfg-critical', 'lbl-critical');
+  updateRangeLabel('cfg-tea', 'lbl-tea');
+  updateRangeLabel('cfg-interval', 'lbl-interval');
+  updateScaleLabels();
+  updateModeUI();
+}
+
+function updateRangeLabel(inputId, labelId) {
+  const val = document.getElementById(inputId)?.value;
+  const lbl = document.getElementById(labelId);
+  if (!lbl || val === undefined) return;
+  lbl.textContent = inputId === 'cfg-interval' ? `${val}s` : `${val} dB`;
+}
+
+async function saveConfig() {
+  const moderate = Number(document.getElementById('cfg-moderate')?.value);
+  const critical = Number(document.getElementById('cfg-critical')?.value);
+  const tea = Number(document.getElementById('cfg-tea')?.value);
+  const interval = Number(document.getElementById('cfg-interval')?.value);
+  const mode = document.getElementById('cfg-mode')?.value;
+  const apiUrl = (document.getElementById('cfg-api-url')?.value || '').trim() || '/api/s10/latest';
+  const micCalibrationOffset = Number(document.getElementById('cfg-mic-offset')?.value || 100);
+  const micDeviceId = (document.getElementById('cfg-mic-device')?.value || '').trim();
+  const microphoneRoomId = (document.getElementById('cfg-microphone-room')?.value || '').trim();
+
+  if (![moderate, critical, tea, interval, micCalibrationOffset].every(Number.isFinite) ||
+      moderate <= 0 || critical <= 0 || tea <= 0 || interval <= 0) {
+    showToast('Configuração inválida. Verifique os valores.', 'red');
+    return;
+  }
+  if (moderate >= critical) {
+    showToast('O limite moderado deve ser menor que o limite crítico.', 'red');
+    return;
+  }
+  if (!['simulation', 'microphone', 'real'].includes(mode)) {
+    showToast('Modo de operação inválido.', 'red');
+    return;
+  }
+  if (mode === 'real' && !isHttpUrl(apiUrl)) {
+    showToast('A URL da API deve começar com http:// ou https://.', 'red');
+    return;
+  }
+
+  state.cfg = {
+    moderate,
+    critical,
+    tea,
+    sound: document.getElementById('cfg-sound')?.checked ?? true,
+    banner: document.getElementById('cfg-banner')?.checked ?? true,
+    teaMode: document.getElementById('cfg-tea-mode')?.checked ?? false,
+    mode,
+    interval,
+    apiUrl,
+    micCalibrationOffset,
+    micDeviceId,
+    microphoneRoomId
+  };
+
+  try {
+    await persistConfig();
+    updateScaleLabels();
+    updateModeUI();
+    restartDataLoop();
+    if (mode === 'microphone') {
+      await startMicrophone();
+    }
+    showToast('Configurações salvas com sucesso.', 'green');
+    renderAll();
+  } catch (error) {
+    console.error(error);
+    showToast('Erro ao salvar configurações.', 'red');
+  }
+}
+
+function updateScaleLabels() {
+  setText('scale-silent-range', `0–${Math.max(0, state.cfg.moderate - 0.1).toFixed(1)} dB`);
+  setText('scale-moderate-range', `${state.cfg.moderate.toFixed(1)}–${Math.max(state.cfg.moderate, state.cfg.critical - 0.1).toFixed(1)} dB`);
+  setText('scale-critical-range', `≥ ${state.cfg.critical.toFixed(1)} dB`);
+}
+
+function updateModeUI() {
+  const modeMap = {
+    simulation: ['Modo Simulação', 'Simulação ativa', 'yellow'],
+    microphone: ['Microfone do Computador', state.microphone.active ? 'Microfone ativo' : 'Microfone não iniciado', state.microphone.active ? 'green' : 'red'],
+    real: ['Modo Sensor Real', state.apiOnline ? 'API online' : 'API offline', state.apiOnline ? 'green' : 'red']
+  };
+  const [modeText, pillText, dotColor] = modeMap[state.cfg.mode] || modeMap.simulation;
+  const dot = document.querySelector('#sensor-pill .dot');
+  setText('sensor-pill-text', pillText);
+  if (dot) dot.className = `dot ${dotColor}`;
+  setText('hardware-status', state.cfg.mode === 'simulation' ? 'Simulação — hardware não utilizado' : state.cfg.mode === 'microphone' ? 'Microfone do computador — entrada local' : '[PRECISA SER CONFIGURADO]');
+  const micBtn = document.getElementById('btn-activate-microphone');
+  if (micBtn) {
+    micBtn.disabled = state.cfg.mode !== 'microphone' || state.microphone.active;
+    micBtn.innerHTML = state.microphone.active
+      ? '<i class="fa-solid fa-circle-check"></i> Microfone ativo'
+      : '<i class="fa-solid fa-microphone"></i> Ativar microfone';
+  }
+  setText('cfg-api-status', state.cfg.mode === 'microphone' ? (state.microphone.active ? 'Ativo' : 'Aguardando permissão') : (state.apiOnline ? 'Online' : 'Offline'));
+  setText('cfg-api-status-detail', state.cfg.mode === 'real'
+    ? (state.cfg.apiUrl ? state.cfg.apiUrl : '[PRECISA SER CONFIGURADO]')
+    : state.cfg.mode === 'microphone'
+      ? 'Mede o microfone local. Sem calibração, o valor não representa dB SPL.'
+      : 'API não utilizada no Modo Simulação');
+  const label = document.getElementById('gauge-label');
+  if (label) label.textContent = `NÍVEL DE RUÍDO ATUAL — ${modeText.toUpperCase()}`;
+}
+
+function isHttpUrl(value) {
+  const v = String(value || '').trim();
+  if (v.startsWith('/')) return true;
+  try {
+    const u = new URL(v);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch { return false; }
+}
+
+/* =========================
+   App / dados persistidos
+   ========================= */
+async function initApp() {
+  if (!state.user) return;
+  state.sessionStartedAt = new Date();
+  await loadUserData();
+  await seedDefaultRoomsIfNeeded();
+  initCharts();
+  renderAll();
+  await loadChallenge();
+  restartDataLoop();
+  if (isStudentUser()) {
+    stopMicrophone();
+    state.cfg.mode = 'real';
+  } else if (state.cfg.mode === 'simulation') await simulationTick();
+  else if (state.cfg.mode === 'microphone') await startMicrophone();
+  else await pollRealApi();
+  applyRoleAccess();
+}
+
+
+async function seedDefaultRoomsIfNeeded() {
+  if (!state.user || state.rooms.length || state.historyData.length) return;
+  const defaults = ['Sala 01', 'Sala 02', 'Sala 03'];
+  for (const name of defaults) {
+    const room = { id: id(), userId: state.user.id, name, db: 0, online: false, lastReadingAt: null, simulationEnabled: true, simulationSensorId: null };
+    try {
+      await apiRequest('/api/salas', { method: 'POST', body: JSON.stringify({ id: room.id, nome: name, online: false, manualOffline: false, db: 0 }) });
+      state.rooms.push(room);
+      await putRecord(STORES.rooms, room);
+    } catch (e) {
+      console.warn('Sala padrão não criada no banco:', e);
+    }
+  }
+}
+
+async function loadUserData() {
+  try {
+    const result = await apiRequest('/api/bootstrap');
+    const rawRooms = result.salas || [];
+    const rawSensors = result.sensores || [];
+    const rawReadings = result.medicoes || [];
+    const rawAlerts = result.alertas || [];
+    const studentAllowed = isStudentUser();
+    const studentRoomNames = new Set(['bili']);
+    const studentSensorAllowed = sensor => String(sensor || '').trim().toUpperCase() === 'S10';
+    const studentRoomAllowed = room => studentRoomNames.has(String(room || '').trim().toLowerCase());
+    state.rooms = (studentAllowed ? rawRooms.filter(r => studentRoomAllowed(r.nome) || rawSensors.some(s => s.identificador === 'S10' && s.salaId === r.id)) : rawRooms).map(r => ({
+      id: r.id, userId: state.user.id, name: r.nome, db: Number(r.nivel_atual) || 0,
+      online: Boolean(r.online), manualOffline: Boolean(r.manual_offline), lastReadingAt: r.ultima_medicao_em,
+      simulationEnabled: true, simulationSensorId: null, history: []
+    }));
+    state.sensors = (studentAllowed ? rawSensors.filter(s => studentSensorAllowed(s.identificador) || studentRoomAllowed(s.sala_nome)) : rawSensors).map(s => ({
+      id: s.identificador, userId: state.user.id, roomName: s.sala_nome, online: Boolean(s.online), lastSeen: s.ultima_leitura_em,
+      deviceId: s.dispositivo_id
+    }));
+    state.historyData = (studentAllowed ? rawReadings.filter(m => studentSensorAllowed(m.sensor) || studentRoomAllowed(m.sala)) : rawReadings).map(m => ({
+      id: m.id, userId: state.user.id, sensor: m.sensor, sala: m.sala, db: Number(m.nivel_db), timestamp: m.data_hora,
+      status: m.status, statusKey: statusToKey(m.status), simulated: Boolean(m.simulada), receivedAt: m.recebida_em
+    })).filter(isValidReading).sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp));
+    state.alerts = (studentAllowed ? rawAlerts.filter(a => studentSensorAllowed(a.sensor) || studentRoomAllowed(a.sala)) : rawAlerts).filter(a => a.tipo !== 'normal').map(a => ({
+      id: a.id, userId: state.user.id, sensor: a.sensor, sala: a.sala, db: Number(a.nivel_db),
+      type: a.tipo === 'critico' ? 'critical' : a.tipo === 'moderado' ? 'moderate' : a.tipo === 'tea' ? 'tea' : 'normal',
+      message: a.mensagem, timestamp: a.data_hora
+    })).sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp));
+    // Mantém cache local para funcionamento visual/offline temporário.
+    for (const room of state.rooms) await putRecord(STORES.rooms, stripRoomForDb(room));
+    for (const sensor of state.sensors) await putRecord(STORES.sensors, sensor);
+    for (const reading of state.historyData) await putRecord(STORES.readings, reading);
+    for (const alert of state.alerts) await putRecord(STORES.alerts, alert);
+    state.lastAlertKeys.clear();
+    return true;
+  } catch (error) {
+    console.error(error);
+    showToast('Não foi possível carregar os dados do banco.', 'red');
+    return false;
+  }
+}
+
+async function refreshStudentData() {
+  if (!isStudentUser()) return;
+  try {
+    await loadUserData();
+    state.currentDb = state.rooms.length ? average(state.rooms.filter(r => r.lastReadingAt).map(r => ({db:Number(r.db)}))) : null;
+    renderAll();
+  } catch (e) { console.warn('Atualização do aluno:', e); }
+}
+
+function restartDataLoop() {
+  stopDataLoop();
+  if (isStudentUser()) {
+    state.timers.api = setInterval(() => refreshStudentData(), Math.max(5000, state.cfg.interval * 1000));
+  } else if (state.cfg.mode === 'simulation') {
+    state.timers.update = setInterval(() => simulationTick(), state.cfg.interval * 1000);
+  } else if (state.cfg.mode === 'microphone') {
+    state.timers.update = setInterval(() => microphoneTick(), state.cfg.interval * 1000);
+  } else {
+    state.timers.api = setInterval(() => pollRealApi(), state.cfg.interval * 1000);
+  }
+}
+
+function stopDataLoop() {
+  stopMicrophone();
+  if (state.timers.update) clearInterval(state.timers.update);
+  if (state.timers.api) clearInterval(state.timers.api);
+  if (state.timers.lastUpdate) clearInterval(state.timers.lastUpdate);
+  state.timers.update = null;
+  state.timers.api = null;
+  state.timers.lastUpdate = null;
+}
+
+function handleFatalError(error) {
+  console.error(error);
+  showToast('Erro ao iniciar o sistema.', 'red');
+}
+
+/* =========================
+   Modo Simulação
+   ========================= */
+async function simulationTick() {
+  if (!state.user || state.cfg.mode !== 'simulation') return;
+  if (!state.rooms.length) {
+    renderSalas();
+    setText('status-text', 'Nenhuma sala cadastrada');
+    setText('gauge-val', '--');
+    return;
+  }
+
+  const now = new Date();
+  const readings = [];
+  for (const room of state.rooms) {
+    if (!room.simulationEnabled || room.manualOffline) continue;
+    const previous = Number(room.db) || 45;
+    const db = walk(previous);
+    room.db = db;
+    room.online = true;
+    const sensorId = room.simulationSensorId || `SIM-${room.id}`;
+    room.simulationSensorId = sensorId;
+    const reading = normalizeReading({
+      sensor: sensorId,
+      sala: room.name,
+      db,
+      dataHora: now.toISOString(),
+      status: null
+    }, true);
+    if (reading) readings.push(reading);
+  }
+
+  if (!readings.length) return;
+  await persistReadings(readings);
+  await processReadings(readings);
+  updateLastUpdateTimer(now);
+}
+
+function walk(previous) {
+  const base = Number.isFinite(previous) ? previous : 45;
+  const delta = (Math.random() - 0.5) * 14;
+  let next = Math.max(20, Math.min(120, base + delta));
+  if (Math.random() < 0.05) next = 70 + Math.random() * 35;
+  return Math.round(next * 10) / 10;
+}
+
+/* =========================
+   Microfone do computador
+   ========================= */
+function refreshMicrophoneRoomSelector() {
+  const select = document.getElementById('cfg-microphone-room');
+  if (!select || typeof state === 'undefined') return;
+  const current = state.cfg.microphoneRoomId || '';
+  select.innerHTML = '<option value="">Primeira sala ativa</option>' + (state.rooms || []).map(room =>
+    `<option value="${escapeHtml(room.id)}">${escapeHtml(room.name)}</option>`
+  ).join('');
+  if (current && (state.rooms || []).some(r => String(r.id) === String(current))) select.value = current;
+}
+
+async function populateMicrophoneDevices() {
+  const select = document.getElementById('cfg-mic-device');
+  if (!select || !navigator.mediaDevices?.enumerateDevices) return;
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputs = devices.filter(d => d.kind === 'audioinput');
+    const current = state.cfg.micDeviceId || state.microphone.deviceId || '';
+    select.innerHTML = '<option value="">Microfone padrão do computador</option>' + inputs.map((d, i) =>
+      `<option value="${escapeHtml(d.deviceId)}">${escapeHtml(d.label || `Microfone ${i + 1}`)}</option>`
+    ).join('');
+    if (current && inputs.some(d => d.deviceId === current)) select.value = current;
+  } catch (error) {
+    console.warn('Não foi possível listar os microfones:', error);
+  }
+}
+
+async function startMicrophone() {
+  if (state.cfg.mode !== 'microphone') return false;
+  if (!navigator.mediaDevices?.getUserMedia) {
+    state.microphone.permission = 'unsupported';
+    updateModeUI();
+    showOperationalError('Seu navegador não disponibiliza acesso ao microfone. Use um navegador moderno em HTTPS ou localhost.');
+    return false;
+  }
+  try {
+    if (!state.microphone.stream) {
+      state.microphone.stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, ...(state.cfg.micDeviceId ? { deviceId: { exact: state.cfg.micDeviceId } } : {}) },
+        video: false
+      });
+    }
+    state.microphone.deviceId = state.cfg.micDeviceId || state.microphone.stream?.getAudioTracks?.()[0]?.getSettings?.().deviceId || '';
+    if (!state.microphone.context) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) throw new Error('Web Audio API não disponível.');
+      state.microphone.context = new AudioCtx();
+      const source = state.microphone.context.createMediaStreamSource(state.microphone.stream);
+      state.microphone.analyser = state.microphone.context.createAnalyser();
+      state.microphone.analyser.fftSize = 2048;
+      state.microphone.analyser.smoothingTimeConstant = 0.15;
+      state.microphone.buffer = new Float32Array(state.microphone.analyser.fftSize);
+      source.connect(state.microphone.analyser);
+      state.microphone.sampleRate = state.microphone.context.sampleRate;
+    }
+    if (state.microphone.context.state === 'suspended') await state.microphone.context.resume();
+    state.microphone.permission = 'granted';
+    state.microphone.active = true;
+    await populateMicrophoneDevices();
+    clearOperationalError();
+    updateModeUI();
+    showToast('Microfone ativado. O sistema agora lê o áudio deste computador.', 'green');
+    await microphoneTick();
+    return true;
+  } catch (error) {
+    console.error('Microfone:', error);
+    state.microphone.permission = error.name === 'NotAllowedError' ? 'denied' : 'error';
+    state.microphone.active = false;
+    updateModeUI();
+    showOperationalError(error.name === 'NotAllowedError'
+      ? 'Permissão do microfone negada. Autorize o microfone nas configurações do navegador.'
+      : `Não foi possível acessar o microfone: ${error.message || 'erro desconhecido'}.`);
+    return false;
+  }
+}
+
+function stopMicrophone() {
+  if (state.microphone.stream) state.microphone.stream.getTracks().forEach(track => track.stop());
+  if (state.microphone.context) state.microphone.context.close().catch(() => {});
+  state.microphone.stream = null;
+  state.microphone.context = null;
+  state.microphone.analyser = null;
+  state.microphone.buffer = null;
+  state.microphone.active = false;
+}
+
+function readMicrophoneLevel() {
+  const analyser = state.microphone.analyser;
+  const buffer = state.microphone.buffer;
+  if (!analyser || !buffer) return null;
+  analyser.getFloatTimeDomainData(buffer);
+  let sum = 0;
+  let peak = 0;
+  for (const sample of buffer) {
+    sum += sample * sample;
+    peak = Math.max(peak, Math.abs(sample));
+  }
+  const rms = Math.sqrt(sum / buffer.length);
+  if (!Number.isFinite(rms) || rms <= 0) return -120;
+  const dbfs = 20 * Math.log10(rms);
+  // O microfone do navegador fornece dBFS, não dB SPL. Para que o painel e a
+  // gamificação tenham uma escala positiva utilizável, usamos um offset padrão
+  // de 100 dB como escala estimada. A calibração pode substituir esse offset.
+  const offset = Number.isFinite(Number(state.cfg.micCalibrationOffset)) ? Number(state.cfg.micCalibrationOffset) : 100;
+  const value = dbfs + offset;
+  return Math.max(0, Math.min(120, value));
+}
+
+async function calibrateMicrophone() {
+  if (state.cfg.mode !== 'microphone') {
+    showToast('Selecione Microfone do Computador antes de calibrar.', 'yellow');
+    return;
+  }
+  if (!state.microphone.active && !(await startMicrophone())) return;
+  const reference = Number(window.prompt('Informe o nível em dB indicado por um equipamento de referência no mesmo local, neste momento:'));
+  if (!Number.isFinite(reference) || reference < 0 || reference > 200) {
+    showToast('Valor de referência inválido.', 'red');
+    return;
+  }
+  const analyser = state.microphone.analyser;
+  const buffer = state.microphone.buffer;
+  if (!analyser || !buffer) return;
+  const samples = [];
+  for (let i = 0; i < 10; i++) {
+    analyser.getFloatTimeDomainData(buffer);
+    let sum = 0;
+    for (const sample of buffer) sum += sample * sample;
+    const rms = Math.sqrt(sum / buffer.length);
+    if (Number.isFinite(rms) && rms > 0) samples.push(20 * Math.log10(rms));
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  if (!samples.length) {
+    showToast('Não foi possível obter sinal suficiente para calibrar.', 'red');
+    return;
+  }
+  samples.sort((a,b) => a-b);
+  const dbfs = samples[Math.floor(samples.length / 2)];
+  const offset = reference - dbfs;
+  const input = document.getElementById('cfg-mic-offset');
+  if (input) input.value = offset.toFixed(1);
+  state.cfg.micCalibrationOffset = offset;
+  state.cfg.micCalibrated = true;
+  state.cfg.micCalibrationUpdatedAt = new Date().toISOString();
+  await persistConfig();
+  showToast(`Calibração calculada: offset ${offset.toFixed(1)} dB.`, 'green');
+}
+
+async function microphoneTick() {
+  if (!state.user || state.cfg.mode !== 'microphone' || !state.microphone.active) return;
+  const db = readMicrophoneLevel();
+  if (db === null) return;
+  const now = new Date();
+  const selectedRoomId = state.cfg.microphoneRoomId || '';
+  const room = state.rooms.find(r => String(r.id) === String(selectedRoomId)) || state.rooms.find(r => !r.manualOffline) || state.rooms[0];
+  if (!room) {
+    showOperationalError('Cadastre pelo menos uma sala para registrar o microfone do computador.');
+    return;
+  }
+  if (room.manualOffline) return;
+  room.db = Math.round(db * 10) / 10;
+  room.online = true;
+  const sensorId = 'MIC-COMPUTADOR';
+  const reading = normalizeReading({
+    sensor: sensorId,
+    sala: room.name,
+    db: room.db,
+    dataHora: now.toISOString(),
+    status: null
+  }, false);
+  if (!reading) {
+    showOperationalError('O nível capturado pelo microfone foi inválido.');
+    return;
+  }
+  reading.source = 'computer-microphone';
+  reading.unit = state.cfg.micCalibrated ? 'dB SPL (calibrado)' : 'dB (estimado)';
+  reading.calibrated = Boolean(state.cfg.micCalibrated);
+  await persistReadings([reading]);
+  await processReadings([reading]);
+  updateLastUpdateTimer(now);
+}
+
+/* =========================
+   Modo Sensor Real / API
+   ========================= */
+async function pollRealApi() {
+  if (!state.user || state.cfg.mode !== 'real') return;
+  const url = (state.cfg.apiUrl || '/api/s10/latest').trim() || '/api/s10/latest';
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), Math.max(3000, state.cfg.interval * 1000 - 250));
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store',
+      credentials: 'omit',
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    const candidates = Array.isArray(payload) ? payload : (Array.isArray(payload?.readings) ? payload.readings : (Array.isArray(payload?.data) ? payload.data : [payload]));
+    const readings = candidates.map(item => normalizeReading(item, false)).filter(Boolean);
+
+    state.apiOnline = true;
+    clearOperationalError();
+    if (readings.length) {
+      await persistReadings(readings);
+      await processReadings(readings);
+      updateLastUpdateTimer(new Date());
+    } else {
+      // API online sem leituras novas: isso não é erro. Mantemos o último dado na tela.
+      updateModeUI();
+    }
+  } catch (error) {
+    console.error('API:', error);
+    state.apiOnline = false;
+    updateModeUI();
+    const message = error.name === 'AbortError'
+      ? 'API offline ou sem resposta no tempo esperado. Status do ESP32: [INFORMAÇÃO NÃO ENCONTRADA].'
+      : `Erro ao carregar dados da API: ${error.message || 'resposta inválida'}. Status do ESP32: [INFORMAÇÃO NÃO ENCONTRADA].`;
+    showOperationalError(message);
+  }
+}
+
+function normalizeReading(raw, simulated) {
+  if (!raw || typeof raw !== 'object') return null;
+  const sensor = sanitizePlain(raw.sensor ?? raw.sensorId ?? '', 100);
+  const sala = sanitizePlain(raw.sala ?? raw.room ?? raw.roomName ?? '', 100);
+  const db = Number(raw.db ?? raw.dB ?? raw.decibel ?? raw.level);
+  const timestampRaw = raw.dataHora ?? raw.timestamp ?? raw.dateTime ?? raw.datetime;
+  const date = new Date(timestampRaw || Date.now());
+
+  if (!sensor || !sala || !Number.isFinite(db) || db < 0 || db > 200 || Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const status = normalizeStatus(raw.status) || dbStatus(db).label;
+  const reading = {
+    id: sanitizePlain(raw.id ?? '', 120) || id(),
+    userId: state.user.id,
+    sensor,
+    sala,
+    db: Math.round(db * 10) / 10,
+    timestamp: date.toISOString(),
+    status,
+    statusKey: statusToKey(status),
+    simulated: Boolean(simulated),
+    receivedAt: new Date().toISOString()
+  };
+  return reading;
+}
+
+function normalizeStatus(value) {
+  if (!value) return null;
+  const clean = String(value).trim().toLowerCase();
+  if (['silencioso','ok','normal','green'].includes(clean)) return 'Silencioso';
+  if (['moderado','atenção','atencao','warning','yellow'].includes(clean)) return 'Moderado';
+  if (['crítico','critico','critical','red'].includes(clean)) return 'Crítico';
+  return null;
+}
+
+function statusToKey(status) {
+  if (status === 'Crítico') return 'red';
+  if (status === 'Moderado') return 'yellow';
+  return 'green';
+}
+
+function dbStatus(db) {
+  if (db < state.cfg.moderate) return { key: 'green', label: 'Silencioso' };
+  if (db < state.cfg.critical) return { key: 'yellow', label: 'Moderado' };
+  return { key: 'red', label: 'Crítico' };
+}
+
+function getLevel(db) {
+  if (db < state.cfg.moderate) return { color: 'green', label: 'Silencioso — Ambiente Adequado' };
+  if (db < state.cfg.critical) return { color: 'yellow', label: 'Moderado — Atenção Recomendada' };
+  return { color: 'red', label: 'Crítico — Ambiente Inadequado' };
+}
+
+function isValidReading(r) {
+  return r && typeof r.sala === 'string' && typeof r.sensor === 'string' &&
+    Number.isFinite(Number(r.db)) && !Number.isNaN(new Date(r.timestamp).getTime());
+}
+
+/* =========================
+   Persistência e processamento
+   ========================= */
+async function persistReadings(readings) {
+  if (readings.length) {
+    await apiRequest('/api/medicoes', { method: 'POST', body: JSON.stringify(readings) });
+  }
+  for (const reading of readings) {
+    const existing = await getRecord(STORES.readings, reading.id);
+    const duplicate = state.historyData.some(r =>
+      r.sensor === reading.sensor &&
+      r.timestamp === reading.timestamp &&
+      Number(r.db) === Number(reading.db)
+    );
+    if (existing || duplicate) continue;
+    await putRecord(STORES.readings, reading);
+    await upsertRoomFromReading(reading);
+    await upsertSensorFromReading(reading);
+  }
+}
+
+async function upsertRoomFromReading(reading) {
+  let room = state.rooms.find(r => r.name.toLowerCase() === reading.sala.toLowerCase() || String(r.id) === reading.sala);
+  if (!room) {
+    room = {
+      id: id(),
+      userId: state.user.id,
+      name: reading.sala,
+      db: reading.db,
+      online: true,
+      history: [],
+      alerted: false,
+      simulationEnabled: false
+    };
+    state.rooms.push(room);
+  }
+  room.db = reading.db;
+  room.online = true;
+  room.lastReadingAt = reading.timestamp;
+  await putRecord(STORES.rooms, stripRoomForDb(room));
+}
+
+async function upsertSensorFromReading(reading) {
+  let sensor = state.sensors.find(s => s.id === reading.sensor);
+  if (!sensor) {
+    sensor = { id: reading.sensor, userId: state.user.id, roomName: reading.sala, online: true, lastSeen: reading.timestamp };
+    state.sensors.push(sensor);
+  } else {
+    sensor.roomName = reading.sala;
+    sensor.online = true;
+    sensor.lastSeen = reading.timestamp;
+  }
+  await putRecord(STORES.sensors, sensor);
+}
+
+function stripRoomForDb(room) {
+  return {
+    id: room.id,
+    escolaId: state.user.escolaId,
+    userId: state.user.id,
+    name: room.name,
+    nome: room.name,
+    db: Number(room.db) || 0,
+    nivelAtual: Number(room.db) || 0,
+    online: Boolean(room.online),
+    lastReadingAt: room.lastReadingAt || null,
+    ultimaMedicaoEm: room.lastReadingAt || null,
+    simulationEnabled: room.simulationEnabled !== false,
+    simulationSensorId: room.simulationSensorId || null,
+    manualOffline: Boolean(room.manualOffline)
+  };
+}
+
+async function processReadings(readings) {
+  const sorted = [...readings].sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+  for (const reading of sorted) {
+    const room = state.rooms.find(r => r.name.toLowerCase() === reading.sala.toLowerCase());
+    if (room) {
+      room.db = reading.db;
+      room.online = true;
+      room.lastReadingAt = reading.timestamp;
+      room.history = room.history || [];
+      room.history.push({ time: new Date(reading.timestamp), db: reading.db, sensor: reading.sensor });
+      if (room.history.length > MAX_CHART_POINTS) room.history.shift();
+      await putRecord(STORES.rooms, stripRoomForDb(room));
+    }
+
+    if (!state.historyData.some(r => r.id === reading.id)) {
+      state.historyData.unshift(reading);
+      if (new Date(reading.timestamp) >= (state.sessionStartedAt || new Date(0))) {
+        state.sessionReadingIds.add(reading.id);
+        state.sessionData.push({ time: new Date(reading.timestamp), db: reading.db, sensor: reading.sensor, sala: reading.sala });
+      }
+    }
+
+    if (reading.statusKey === 'red' || (state.cfg.teaMode && reading.db >= state.cfg.tea)) {
+      await createAlertIfNeeded(reading);
+    } else {
+      state.lastAlertKeys.delete(alertKeyFor(reading));
+      state.lastAlertKeys.delete(alertKeyFor(reading, 'tea'));
+    }
+  }
+
+  state.historyData.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const latestByRoom = state.rooms.filter(r => Number.isFinite(Number(r.db)) && r.lastReadingAt);
+  state.currentDb = latestByRoom.length ? average(latestByRoom.map(r => ({ db: Number(r.db) }))) : null;
+  await refreshAlertsFromDb();
+  renderAll();
+}
+
+function alertKeyFor(reading, forcedType) {
+  const type = forcedType || (reading.db >= state.cfg.critical ? 'critical' : 'moderate');
+  return `${reading.sensor}|${type}`;
+}
+
+async function createAlertIfNeeded(reading) {
+  const critical = reading.db >= state.cfg.critical;
+  const tea = !critical && state.cfg.teaMode && reading.db >= state.cfg.tea;
+  const moderate = !critical && !tea && reading.db >= state.cfg.moderate;
+  const type = critical ? 'critical' : (tea ? 'tea' : (moderate ? 'moderate' : null));
+  if (!type) return;
+
+  const key = `${reading.sensor}|${type}`;
+  if (state.lastAlertKeys.has(key)) return;
+
+  const previous = state.historyData.find(r =>
+    r.sensor === reading.sensor &&
+    r.id !== reading.id &&
+    new Date(r.timestamp) < new Date(reading.timestamp)
+  );
+  const wasSameOrHigher = previous && (
+    (type === 'critical' && previous.db >= state.cfg.critical) ||
+    (type === 'tea' && previous.db >= state.cfg.tea && previous.db < state.cfg.critical) ||
+    (type === 'moderate' && previous.db >= state.cfg.moderate && previous.db < state.cfg.critical && (!state.cfg.teaMode || previous.db < state.cfg.tea))
+  );
+  if (wasSameOrHigher) {
+    state.lastAlertKeys.add(key);
+    return;
+  }
+
+  const alert = {
+    id: id(),
+    userId: state.user.id,
+    sensor: reading.sensor,
+    sala: reading.sala,
+    db: reading.db,
+    type,
+    message: type === 'critical'
+      ? `Ruído elevado detectado — ${reading.db.toFixed(1)} dB (${reading.sala})`
+      : type === 'tea'
+        ? `Nível acima do limite TEA configurado — ${reading.db.toFixed(1)} dB (${reading.sala})`
+        : `Ambiente moderado — ${reading.db.toFixed(1)} dB (${reading.sala})`,
+    timestamp: reading.timestamp
+  };
+  await putRecord(STORES.alerts, alert);
+  state.lastAlertKeys.add(key);
+
+  if (state.cfg.banner && type === 'critical') {
+    setText('alert-msg', alert.message);
+    document.getElementById('alert-banner')?.classList.remove('hidden');
+    window.setTimeout(() => document.getElementById('alert-banner')?.classList.add('hidden'), 5000);
+  }
+  if (state.cfg.sound) playAlertTone();
+}
+
+async function refreshAlertsFromDb() {
+  try {
+    const result = await apiRequest('/api/alertas');
+    state.alerts = (result.alertas || []).map(a => ({
+      id: a.id, userId: state.user.id, sensor: a.sensor, sala: a.sala, db: Number(a.nivel_db),
+      type: a.tipo === 'critico' ? 'critical' : a.tipo === 'moderado' ? 'moderate' : a.tipo === 'tea' ? 'tea' : 'normal',
+      message: a.mensagem, timestamp: a.data_hora
+    }));
+  } catch (e) {
+    state.alerts = (await getByIndex(STORES.alerts, 'userId', state.user.id)).sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp));
+  }
+}
+
+/* =========================
+   Cálculos
+   ========================= */
+function getSessionReadings() {
+  return state.historyData.filter(r => new Date(r.timestamp) >= (state.sessionStartedAt || new Date(0)));
+}
+
+function average(readings) {
+  if (!readings.length) return null;
+  return readings.reduce((sum, r) => sum + Number(r.db), 0) / readings.length;
+}
+
+function peak(readings) {
+  return readings.length ? Math.max(...readings.map(r => Number(r.db))) : null;
+}
+
+function calculateCriticalMs(readings, endAt = new Date()) {
+  const ordered = [...readings].sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+  let total = 0;
+  const lastSampleWindow = Math.max(1000, state.cfg.interval * 2000);
+  for (let i = 0; i < ordered.length; i++) {
+    const current = ordered[i];
+    if (Number(current.db) < state.cfg.critical) continue;
+    const start = new Date(current.timestamp).getTime();
+    const hasNext = i + 1 < ordered.length;
+    const next = hasNext ? new Date(ordered[i + 1].timestamp).getTime() : endAt.getTime();
+    if (!Number.isFinite(start) || !Number.isFinite(next) || next <= start) continue;
+    if (!hasNext && (next - start) > lastSampleWindow) continue;
+    total += next - start;
+  }
+  return total;
+}
+
+function calculateAverageByRoom(readings) {
+  const map = new Map();
+  for (const r of readings) {
+    if (!map.has(r.sala)) map.set(r.sala, []);
+    map.get(r.sala).push(r);
+  }
+  return [...map.entries()].map(([sala, rows]) => ({
+    sala, average: average(rows), peak: peak(rows), alerts: rows.filter(r => r.statusKey === 'red').length
+  }));
+}
+
+function calculateHourly(readings) {
+  const map = new Map();
+  for (const r of readings) {
+    const date = new Date(r.timestamp);
+    const key = date.toLocaleString('pt-BR', { hour: '2-digit', hour12: false });
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(r.db);
+  }
+  return [...map.entries()]
+    .sort((a,b) => Number(a[0]) - Number(b[0]))
+    .map(([hour, values]) => ({ hour, average: values.reduce((a,b)=>a+b,0)/values.length }));
+}
+
+function busiestHour(readings) {
+  const hours = calculateHourly(readings);
+  if (!hours.length) return null;
+  return hours.reduce((best, item) => item.average > best.average ? item : best, hours[0]);
+}
+
+/* =========================
+   Painel
+   ========================= */
+function updatePainel() {
+  const readings = getSessionReadings();
+  const current = state.currentDb;
+  if (current == null) {
+    setText('gauge-val', '--');
+    setText('status-text', 'Aguardando leitura...');
+  } else {
+    const pct = Math.min(Math.max(current / Math.max(1, state.cfg.critical * 1.5), 0), 1);
+    const offset = 283 - pct * 283;
+    const arc = document.getElementById('gauge-arc');
+    if (arc) arc.style.strokeDashoffset = offset;
+    setText('gauge-val', Number(current).toFixed(1));
+    const level = getLevel(current);
+    setText('status-text', level.label);
+    const dot = document.querySelector('#gauge-status .status-dot');
+    if (dot) {
+      dot.style.background = `var(--${level.color})`;
+      dot.style.boxShadow = `0 0 8px var(--${level.color})`;
+    }
+  }
+
+  const avg = average(readings);
+  const pk = peak(readings);
+  setText('stat-avg', avg == null ? '--' : `${avg.toFixed(1)}`);
+  setText('stat-peak', pk == null ? '--' : `${pk.toFixed(1)}`);
+  setText('stat-alerts', String(state.alerts.length));
+  setText('stat-ok', formatDuration(calculateNonCriticalMs(readings)));
+
+  const last = state.lastReadingAt ? new Date(state.lastReadingAt) : null;
+  setText('last-update', last ? `${Math.max(0, Math.floor((Date.now() - last.getTime()) / 1000))}s` : '--');
+}
+
+function calculateNonCriticalMs(readings) {
+  const ordered = [...readings].sort((a,b) => new Date(a.timestamp)-new Date(b.timestamp));
+  let total = 0;
+  const lastSampleWindow = Math.max(1000, state.cfg.interval * 2000);
+  for (let i=0;i<ordered.length;i++) {
+    const start = new Date(ordered[i].timestamp).getTime();
+    const hasNext = i + 1 < ordered.length;
+    const end = hasNext ? new Date(ordered[i+1].timestamp).getTime() : Date.now();
+    if (!Number.isFinite(start)||end<=start) continue;
+    if (!hasNext && (end - start) > lastSampleWindow) continue;
+    if (ordered[i].db < state.cfg.critical) total += end-start;
+  }
+  return Math.max(0,total);
+}
+
+function formatDuration(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return '0min';
+  const totalMinutes = Math.floor(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours ? `${hours}h ${minutes}min` : `${minutes}min`;
+}
+
+/* =========================
+   Alertas
+   ========================= */
+function renderAlerts() {
+  const list = document.getElementById('alerts-list');
+  if (!list) return;
+  const icons = { critical:'fa-fire', moderate:'fa-triangle-exclamation', tea:'fa-brain' };
+  const labels = { critical:'CRÍTICO', moderate:'MODERADO', tea:'TEA' };
+  const titles = { critical:'Ruído Elevado Detectado', moderate:'Nível Moderado', tea:'Sensibilidade TEA' };
+
+  if (!state.alerts.length) {
+    list.innerHTML = '<div class="empty-state"><i class="fa-solid fa-bell-slash"></i><p>Nenhum alerta registrado</p></div>';
+  } else {
+    list.innerHTML = state.alerts.map(a => `
+      <div class="alert-item ${escapeHtml(a.type)}">
+        <i class="fa-solid ${icons[a.type] || 'fa-bell'} alert-icon" aria-hidden="true"></i>
+        <div class="alert-content">
+          <div class="alert-title">${escapeHtml(titles[a.type] || 'Alerta')}</div>
+          <div class="alert-meta">${escapeHtml(a.message)} • ${formatDateTime(a.timestamp)}</div>
+        </div>
+        <span class="alert-badge ${escapeHtml(a.type)}">${labels[a.type] || 'ALERTA'}</span>
+      </div>`).join('');
+  }
+  const badge = document.getElementById('badge-alertas');
+  if (badge) {
+    badge.textContent = String(state.alerts.length);
+    badge.classList.toggle('show', state.alerts.length > 0);
+  }
+}
+
+async function clearAlerts() {
+  if (!state.user || !state.alerts.length) return;
+  if (!window.confirm('Limpar os alertas registrados?')) return;
+  try {
+    await apiRequest('/api/alertas', { method: 'DELETE' });
+    const alerts = [...state.alerts];
+    for (const alert of alerts) await deleteRecord(STORES.alerts, alert.id);
+    state.alerts = [];
+    state.lastAlertKeys.clear();
+    renderAlerts();
+    showToast('Alertas removidos.', 'green');
+  } catch (error) {
+    console.error(error);
+    showToast('Erro ao limpar alertas.', 'red');
+  }
+}
+
+/* =========================
+   Salas / sensores
+   ========================= */
+async function addRoom() {
+  const input = document.getElementById('new-room-name');
+  const name = sanitizePlain(input?.value || '', 40);
+  if (!name) { showToast('Informe o nome da sala.', 'red'); input?.focus(); return; }
+  if (state.rooms.some(r => r.name.toLowerCase() === name.toLowerCase())) {
+    showToast('Já existe uma sala com esse nome.', 'red');
+    return;
+  }
+  const room = {
+    id: id(), userId: state.user.id, name, db: 0, online: false,
+    lastReadingAt: null, simulationEnabled: true, simulationSensorId: null, manualOffline: false
+  };
+  state.rooms.push(room);
+  try {
+    await apiRequest('/api/salas', { method: 'POST', body: JSON.stringify({ id: room.id, nome: room.name, online: room.online, manualOffline: room.manualOffline, db: room.db }) });
+    await putRecord(STORES.rooms, room);
+    input.value = '';
+    renderSalas();
+    refreshRoomSelectors();
+    refreshMicrophoneRoomSelector();
+    setText('cfg-room-count', String(state.rooms.length));
+    showToast(`Sala "${name}" adicionada.`, 'green');
+  } catch (error) {
+    console.error(error);
+    showToast('Erro ao salvar a sala.', 'red');
+  }
+}
+
+async function deleteRoom(roomId) {
+  const room = state.rooms.find(r => r.id === roomId);
+  if (!room) return;
+  if (!window.confirm(`Excluir "${room.name}"? O histórico já registrado será preservado.`)) return;
+  try {
+    await apiRequest(`/api/salas/${encodeURIComponent(roomId)}`, { method: 'DELETE' });
+    await deleteRecord(STORES.rooms, roomId);
+    state.rooms = state.rooms.filter(r => r.id !== roomId);
+    renderSalas();
+    refreshRoomSelectors();
+    refreshMicrophoneRoomSelector();
+    renderReports();
+    updateBarChart();
+    setText('cfg-room-count', String(state.rooms.length));
+    showToast(`Sala "${room.name}" excluída.`, 'green');
+  } catch (error) {
+    console.error(error);
+    showToast('Erro ao excluir a sala.', 'red');
+  }
+}
+
+async function renameRoom(roomId) {
+  const room = state.rooms.find(r => r.id === roomId);
+  if (!room) return;
+  const name = window.prompt('Novo nome da sala:', room.name);
+  if (name === null) return;
+  const clean = sanitizePlain(name, 40);
+  if (!clean) return;
+  if (state.rooms.some(r => r.id !== roomId && r.name.toLowerCase() === clean.toLowerCase())) {
+    showToast('Já existe uma sala com esse nome.', 'red');
+    return;
+  }
+  try {
+    room.name = clean;
+    await apiRequest(`/api/salas/${encodeURIComponent(roomId)}`, { method: 'PUT', body: JSON.stringify({ nome: room.name, online: room.online, manualOffline: room.manualOffline, db: room.db, lastReadingAt: room.lastReadingAt }) });
+    await putRecord(STORES.rooms, stripRoomForDb(room));
+    renderSalas();
+    refreshRoomSelectors();
+    refreshMicrophoneRoomSelector();
+    renderReports();
+    showToast(`Sala renomeada para "${clean}".`, 'green');
+  } catch (error) {
+    console.error(error);
+    showToast('Erro ao renomear a sala.', 'red');
+  }
+}
+
+async function toggleRoomOnline(roomId) {
+  const room = state.rooms.find(r => r.id === roomId);
+  if (!room) return;
+  room.online = !room.online;
+  if (!room.online) room.manualOffline = true;
+  else room.manualOffline = false;
+  try {
+    await apiRequest(`/api/salas/${encodeURIComponent(roomId)}`, { method: 'PUT', body: JSON.stringify({ nome: room.name, online: room.online, manualOffline: room.manualOffline, db: room.db, lastReadingAt: room.lastReadingAt }) });
+    await putRecord(STORES.rooms, stripRoomForDb(room));
+    renderSalas();
+  } catch {
+    showToast('Erro ao atualizar a sala.', 'red');
+  }
+}
+
+function renderSalas() {
+  const grid = document.getElementById('salas-grid');
+  if (!grid) return;
+  const cards = state.rooms.map(roomCard).join('');
+  grid.innerHTML = cards + addRoomCard();
+  document.getElementById('add-room-btn')?.addEventListener('click', addRoom);
+  document.getElementById('new-room-name')?.addEventListener('keydown', e => { if (e.key === 'Enter') addRoom(); });
+  setText('cfg-room-count', String(state.rooms.length));
+  if (!state.rooms.length) {
+    grid.insertAdjacentHTML('afterbegin', '<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-door-closed"></i><p>Nenhuma sala cadastrada — adicione a primeira.</p></div>');
+  }
+}
+
+function addRoomCard() {
+  return `<div class="add-sala-card">
+    <h3><i class="fa-solid fa-plus"></i> Adicionar sala</h3>
+    <div class="add-sala-form">
+      <label class="sr-only" for="new-room-name">Nome da sala</label>
+      <input type="text" id="new-room-name" placeholder="Ex: Sala 04, Laboratório..." maxlength="40" />
+      <button class="btn-primary" id="add-room-btn" type="button"><i class="fa-solid fa-plus"></i> Criar sala</button>
+    </div>
+    <span class="add-sala-hint">Cadastre, renomeie ou exclua salas. Os dados históricos já registrados são preservados.</span>
+  </div>`;
+}
+
+function getMeasurementUnit() {
+  if (state.cfg.mode === 'microphone') return state.cfg.micCalibrated ? 'dB SPL (calibrado)' : 'dB (estimado)';
+  return 'dB';
+}
+
+function roomCard(room) {
+  const online = !room.manualOffline && (state.cfg.mode === 'simulation' || state.cfg.mode === 'microphone' ? Boolean(room.lastReadingAt) : isSensorFresh(room.lastReadingAt));
+  const level = online ? getLevel(Number(room.db) || 0) : { color:'', label:'Offline' };
+  const db = online ? Number(room.db).toFixed(1) : '--';
+  const pct = online ? Math.min((Number(room.db) / Math.max(1, state.cfg.critical * 1.5)) * 100, 100) : 0;
+  return `<div class="sala-card ${online ? level.color : ''}" data-id="${escapeHtml(room.id)}">
+    <div class="sala-header">
+      <div class="sala-name-wrap"><div class="sala-name">${escapeHtml(room.name)}</div></div>
+      <div class="sala-actions">
+        <button class="icon-btn" type="button" title="Renomear sala" aria-label="Renomear sala ${escapeHtml(room.name)}" onclick="renameRoom('${escapeJs(room.id)}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="icon-btn" type="button" title="${online ? 'Marcar offline' : 'Marcar online'}" aria-label="${online ? 'Marcar offline' : 'Marcar online'}" onclick="toggleRoomOnline('${escapeJs(room.id)}')"><i class="fa-solid fa-power-off"></i></button>
+        <button class="icon-btn danger" type="button" title="Excluir sala" aria-label="Excluir sala ${escapeHtml(room.name)}" onclick="deleteRoom('${escapeJs(room.id)}')"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+    <div class="sala-sensor ${online ? '' : 'offline'}" style="margin-bottom:.9rem;display:inline-block">
+      <i class="fa-solid fa-microchip"></i> ${online ? 'Online' : 'Offline'}
+    </div>
+    <div class="sala-db-big ${online ? level.color : 'green'}">${db}</div>
+    <div class="sala-db-unit">${getMeasurementUnit()}</div>
+    <div class="sala-bar"><div class="sala-bar-fill ${online ? level.color : 'green'}" style="width:${pct}%"></div></div>
+    <div class="sala-footer">
+      <span class="sala-status-text">${online ? level.label.split(' —')[0] : 'Offline'}</span>
+      <span>${room.lastReadingAt ? formatTime(room.lastReadingAt) : '--:--'}</span>
+    </div>
+  </div>`;
+}
+
+function updateSalas() {
+  state.rooms.forEach(room => {
+    const card = document.querySelector(`.sala-card[data-id="${CSS.escape(String(room.id))}"]`);
+    if (!card) return;
+    const online = !room.manualOffline && (state.cfg.mode === 'simulation' || state.cfg.mode === 'microphone' ? Boolean(room.lastReadingAt) : isSensorFresh(room.lastReadingAt));
+    const level = online ? getLevel(Number(room.db) || 0) : { color:'', label:'Offline' };
+    const dbEl = card.querySelector('.sala-db-big');
+    if (dbEl) {
+      dbEl.textContent = online ? Number(room.db).toFixed(1) : '--';
+      dbEl.className = `sala-db-big ${online ? level.color : 'green'}`;
+    }
+    const fill = card.querySelector('.sala-bar-fill');
+    if (fill) {
+      fill.style.width = `${online ? Math.min((Number(room.db)/(state.cfg.critical*1.5))*100,100) : 0}%`;
+      fill.className = `sala-bar-fill ${online ? level.color : 'green'}`;
+    }
+    const status = card.querySelector('.sala-status-text');
+    if (status) status.textContent = online ? level.label.split(' —')[0] : 'Offline';
+  });
+}
+
+function isSensorFresh(timestamp) {
+  if (!timestamp) return false;
+  const age = Date.now() - new Date(timestamp).getTime();
+  return Number.isFinite(age) && age >= 0 && age <= Math.max(10000, state.cfg.interval * 3000);
+}
+
+/* =========================
+   Histórico
+   ========================= */
+function refreshRoomSelectors() {
+  const lineSel = document.getElementById('sala-filter-line');
+  if (lineSel) {
+    const previous = lineSel.value;
+    lineSel.innerHTML = state.rooms.map(r => `<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)}</option>`).join('');
+    lineSel.value = state.rooms.some(r => String(r.id) === previous) ? previous : (state.rooms[0]?.id || '');
+  }
+  const histSel = document.getElementById('hist-filter-sala');
+  if (histSel) {
+    const previous = histSel.value;
+    const names = [...new Set([...state.rooms.map(r => r.name), ...state.historyData.map(r => r.sala)])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    histSel.innerHTML = '<option value="">Todas as salas</option>' + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+    histSel.value = names.includes(previous) ? previous : '';
+  }
+}
+
+function filterTable() {
+  const search = (document.getElementById('hist-search')?.value || '').trim().toLowerCase();
+  const sala = document.getElementById('hist-filter-sala')?.value || '';
+  const status = document.getElementById('hist-filter-status')?.value || '';
+  const from = document.getElementById('hist-filter-from')?.value || '';
+  const to = document.getElementById('hist-filter-to')?.value || '';
+
+  let data = state.historyData.filter(row => {
+    const date = new Date(row.timestamp);
+    const localDate = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    const hay = `${row.sala} ${row.sensor} ${row.status} ${row.db}`.toLowerCase();
+    return (!search || hay.includes(search)) &&
+      (!sala || row.sala === sala) &&
+      (!status || row.status === status) &&
+      (!from || localDate >= from) &&
+      (!to || localDate <= to);
+  });
+
+  if (state.histSortCol >= 0) {
+    const cols = ['timestamp','timestamp','sensor','sala','db','status'];
+    const col = cols[state.histSortCol];
+    data.sort((a,b) => {
+      let va = a[col], vb = b[col];
+      if (col === 'db') { va = Number(va); vb = Number(vb); }
+      else { va = String(va); vb = String(vb); }
+      return va < vb ? (state.histSortAsc ? -1 : 1) : va > vb ? (state.histSortAsc ? 1 : -1) : 0;
+    });
+  }
+
+  state.histFiltered = data;
+  state.histPage = 1;
+  renderTable();
+}
+
+function renderHistory() {
+  refreshRoomSelectors();
+  filterTable();
+}
+
+function sortTable(col) {
+  if (state.histSortCol === col) state.histSortAsc = !state.histSortAsc;
+  else { state.histSortCol = col; state.histSortAsc = true; }
+  filterTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('hist-body');
+  if (!tbody) return;
+  const total = state.histFiltered.length;
+  const pages = Math.max(1, Math.ceil(total / state.histPageSize));
+  state.histPage = Math.min(state.histPage, pages);
+  const start = (state.histPage - 1) * state.histPageSize;
+  const rows = state.histFiltered.slice(start, start + state.histPageSize);
+
+  tbody.innerHTML = rows.length ? rows.map(row => `
+    <tr>
+      <td>${formatDate(row.timestamp)}</td>
+      <td><span style="font-family:'Space Mono',monospace;font-size:.8rem">${formatTime(row.timestamp)}</span></td>
+      <td>${escapeHtml(row.sensor)}</td>
+      <td>${escapeHtml(row.sala)}</td>
+      <td><strong style="font-family:'Space Mono',monospace">${Number(row.db).toFixed(1)}</strong></td>
+      <td><span class="status-badge ${escapeHtml(row.statusKey)}">${escapeHtml(row.status)}</span></td>
+    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem">Nenhum registro encontrado.</td></tr>';
+
+  setText('table-count', `${total} registros`);
+  const pg = document.getElementById('pagination');
+  if (!pg) return;
+  pg.innerHTML = '';
+  for (let i = 1; i <= pages; i++) {
+    if (i > 6) break;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `pg-btn${i === state.histPage ? ' active' : ''}`;
+    btn.textContent = String(i);
+    btn.setAttribute('aria-label', `Página ${i}`);
+    btn.onclick = () => { state.histPage = i; renderTable(); };
+    pg.appendChild(btn);
+  }
+}
+
+/* =========================
+   Relatórios
+   ========================= */
+function renderReports() {
+  const readings = state.historyData;
+  const avg = average(readings);
+  const pk = peak(readings);
+  const critical = calculateCriticalMs(readings);
+  const busy = busiestHour(readings);
+  setText('rep-avg', avg == null ? '--' : `${avg.toFixed(1)} dB`);
+  setText('rep-peak', pk == null ? '--' : `${pk.toFixed(1)} dB`);
+  setText('rep-busiest', busy ? `${busy.hour}h` : '--');
+  setText('rep-critical', formatDuration(critical));
+
+  const tbody = document.getElementById('rep-sala-body');
+  if (tbody) {
+    const rows = calculateAverageByRoom(readings);
+    tbody.innerHTML = rows.length ? rows.map(row => {
+      const level = getLevel(row.average);
+      return `<tr>
+        <td>${escapeHtml(row.sala)}</td>
+        <td style="font-family:'Space Mono',monospace">${row.average.toFixed(1)}</td>
+        <td style="font-family:'Space Mono',monospace">${row.peak.toFixed(1)}</td>
+        <td>${row.alerts}</td>
+        <td><span class="status-badge ${level.color}">${level.label.split(' —')[0]}</span></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem">Sem dados.</td></tr>';
+  }
+  updateReportChart();
+}
+
+function exportReport() {
+  const rows = [...state.historyData].sort((a,b) => new Date(a.timestamp)-new Date(b.timestamp));
+  if (!rows.length) {
+    showToast('Não há dados registrados para exportar.', 'red');
+    return;
+  }
+  const header = ['DATA','HORA','SENSOR','SALA','DB','STATUS','ORIGEM'];
+  const csv = [header, ...rows.map(r => [
+    formatDate(r.timestamp),
+    formatTime(r.timestamp),
+    r.sensor,
+    r.sala,
+    Number(r.db).toFixed(1),
+    r.status,
+    r.simulated ? 'SIMULAÇÃO' : 'SENSOR_REAL'
+  ])].map(row => row.map(csvEscape).join(';')).join('\n');
+  const blob = new Blob([`\uFEFF${csv}`], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bom-ruido-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+/* =========================
+   Gráficos
+   ========================= */
+const chartDefaults = { responsive:true, maintainAspectRatio:true, plugins:{ legend:{ display:false } } };
+const gridColor = 'rgba(30,45,74,0.6)';
+const tickColor = '#6b7a99';
+function axisStyle() {
+  return { grid:{color:gridColor}, ticks:{color:tickColor,font:{family:'Space Mono',size:10}}, border:{color:'transparent'} };
+}
+
+class SimpleCanvasChart {
+  constructor(ctx, type, config = {}) {
+    this.ctx = ctx;
+    this.canvas = ctx.canvas;
+    this.type = type;
+    this.data = config.data || { labels: [], datasets: [] };
+    this.options = config.options || {};
+    this.draw = this.draw.bind(this);
+    this.resizeObserver = new ResizeObserver(() => this.draw());
+    this.resizeObserver.observe(this.canvas.parentElement || this.canvas);
+    this.draw();
+  }
+  update() { this.draw(); }
+  draw() {
+    const c = this.ctx, w = this.canvas.width = Math.max(320, this.canvas.clientWidth * devicePixelRatio), h = this.canvas.height = Math.max(160, this.canvas.clientHeight * devicePixelRatio);
+    c.clearRect(0,0,w,h); c.save(); c.scale(devicePixelRatio,devicePixelRatio);
+    const W=w/devicePixelRatio, H=h/devicePixelRatio;
+    if (this.type === 'doughnut') return this.drawDoughnut(c,W,H);
+    const labels=this.data.labels||[], ds=this.data.datasets||[], values=(ds[0]?.data||[]).map(Number).filter(Number.isFinite);
+    if (!values.length) { c.fillStyle='#6b7a99'; c.font='12px DM Sans'; c.textAlign='center'; c.fillText('Sem dados registrados',W/2,H/2); c.restore(); return; }
+    const pad={l:42,r:12,t:18,b:34}; const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+    const max=Math.max(10, Math.ceil(Math.max(...values, this.options.max||120)/10)*10);
+    c.strokeStyle='rgba(30,45,74,.6)'; c.lineWidth=1; c.fillStyle='#6b7a99'; c.font='10px Space Mono'; c.textAlign='right';
+    for(let i=0;i<=4;i++){const y=pad.t+ph*i/4; const val=max*(1-i/4); c.beginPath();c.moveTo(pad.l,y);c.lineTo(W-pad.r,y);c.stroke();c.fillText(val.toFixed(0),pad.l-7,y+3);}
+    if(this.type==='bar') this.drawBars(c,labels,values,pad,pw,ph,max);
+    else this.drawLine(c,labels,values,pad,pw,ph,max);
+    c.restore();
+  }
+  drawLine(c,labels,values,pad,pw,ph,max){
+    const x=i=>pad.l+(values.length===1?pw/2:pw*i/(values.length-1)); const y=v=>pad.t+ph-(v/max)*ph;
+    c.strokeStyle='#8b5cf6';c.lineWidth=2;c.beginPath();values.forEach((v,i)=>i?c.lineTo(x(i),y(v)):c.moveTo(x(i),y(v)));c.stroke();
+    c.fillStyle='#8b5cf6'; values.forEach((v,i)=>{c.beginPath();c.arc(x(i),y(v),2.5,0,Math.PI*2);c.fill();});
+    this.drawThreshold(c,pad,pw,ph,max, this.data.datasets[1]?.data?.[0], '#f59e0b');
+    this.drawThreshold(c,pad,pw,ph,max, this.data.datasets[2]?.data?.[0], '#ef4444');
+    c.fillStyle='#6b7a99';c.font='9px Space Mono';c.textAlign='center'; const step=Math.max(1,Math.ceil(labels.length/8)); labels.forEach((lab,i)=>{if(i%step===0)c.fillText(String(lab),x(i),pad.t+ph+20);});
+  }
+  drawThreshold(c,pad,pw,ph,max,val,color){if(!Number.isFinite(Number(val)))return;const y=pad.t+ph-(Number(val)/max)*ph;c.strokeStyle=color;c.setLineDash([5,4]);c.beginPath();c.moveTo(pad.l,y);c.lineTo(pad.l+pw,y);c.stroke();c.setLineDash([]);}
+  drawBars(c,labels,values,pad,pw,ph,max){const gap=6,bw=Math.max(4,(pw-gap*(values.length+1))/Math.max(1,values.length));values.forEach((v,i)=>{const bh=(v/max)*ph,x=pad.l+gap+i*(bw+gap),y=pad.t+ph-bh;c.fillStyle=this.data.datasets[0]?.backgroundColor?.[i]||'#3b82f6';c.fillRect(x,y,bw,bh);c.fillStyle='#6b7a99';c.font='9px DM Sans';c.textAlign='center';c.fillText(String(labels[i]).slice(0,14),x+bw/2,pad.t+ph+20);});}
+  drawDoughnut(c,W,H){const vals=(this.data.datasets[0]?.data||[]).map(Number),total=vals.reduce((a,b)=>a+b,0);if(!total){c.fillStyle='#6b7a99';c.font='12px DM Sans';c.textAlign='center';c.fillText('Sem dados registrados',W/2,H/2);c.restore();return;}let a=-Math.PI/2;const colors=['#10b981','#f59e0b','#ef4444'];vals.forEach((v,i)=>{const n=a+v/total*Math.PI*2;c.beginPath();c.strokeStyle=colors[i];c.lineWidth=26;c.arc(W/2,H/2,48,a,n);c.stroke();a=n;});c.fillStyle='#fff';c.font='700 16px Space Mono';c.textAlign='center';c.fillText('100%',W/2,H/2+5);c.restore();}
+}
+
+function initCharts() {
+  if (state.chartsInitialized) return;
+  state.chartsInitialized = true;
+  const make=(id,type,options={})=>{const ctx=document.getElementById(id)?.getContext('2d'); return ctx?new SimpleCanvasChart(ctx,type,{data:{labels:[],datasets:[]},options}):null;};
+  miniChart=make('mini-chart','line',{max:120});
+  if(miniChart) miniChart.data.datasets=[{data:[],backgroundColor:'#3b82f6'}];
+  lineChart=make('line-chart','line',{max:120});
+  if(lineChart) lineChart.data.datasets=[{data:[]},{data:[]},{data:[]}];
+  barChart=make('bar-chart','bar',{max:120});
+  if(barChart) barChart.data.datasets=[{data:[],backgroundColor:[]}];
+  doughnutChart=make('doughnut-chart','doughnut');
+  if(doughnutChart) doughnutChart.data.datasets=[{data:[0,0,0]}];
+  reportChart=make('report-chart','bar',{max:120});
+  if(reportChart) reportChart.data.datasets=[{data:[],backgroundColor:[]}];
+}
+
+function updateMiniChart(db) {
+  if (!miniChart) return;
+  if (!Number.isFinite(Number(db))) return;
+  const now = new Date();
+  const data = miniChart.data.datasets[0].data;
+  const labels = miniChart.data.labels;
+  data.push(db);
+  labels.push(formatTime(now));
+  if (data.length > MAX_CHART_POINTS) { data.shift(); labels.shift(); }
+  miniChart.update('none');
+}
+
+function updateLineChart() {
+  if (!lineChart) return;
+  const selected = document.getElementById('sala-filter-line')?.value;
+  const room = state.rooms.find(r => String(r.id) === String(selected)) || state.rooms[0];
+  const history = room ? getRoomReadings(room.name).slice(0, MAX_CHART_POINTS).reverse() : [];
+  lineChart.data.labels = history.map(r => formatTime(r.timestamp, true));
+  lineChart.data.datasets[0].data = history.map(r => r.db);
+  lineChart.data.datasets[1].data = history.map(() => state.cfg.moderate);
+  lineChart.data.datasets[2].data = history.map(() => state.cfg.critical);
+  lineChart.update('none');
+}
+
+function getRoomReadings(roomName) {
+  return state.historyData.filter(r => r.sala === roomName).sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp));
+}
+
+function updateBarChart() {
+  if (!barChart) return;
+  const rows = calculateAverageByRoom(state.historyData);
+  barChart.data.labels = rows.map(r => r.sala);
+  barChart.data.datasets[0].data = rows.map(r => Number(r.average.toFixed(1)));
+  const colors = rows.map((_,i)=>ROOM_COLORS[i%ROOM_COLORS.length]);
+  barChart.data.datasets[0].backgroundColor = colors.map(c=>`${c}b3`);
+  barChart.data.datasets[0].borderColor = colors;
+  barChart.update('none');
+}
+
+function updateDoughnutChart() {
+  if (!doughnutChart) return;
+  const rows = state.historyData;
+  let silent=0, moderate=0, critical=0;
+  rows.forEach(r => {
+    if (r.db < state.cfg.moderate) silent++;
+    else if (r.db < state.cfg.critical) moderate++;
+    else critical++;
+  });
+  const total = silent+moderate+critical;
+  doughnutChart.data.datasets[0].data = total ? [
+    +(silent/total*100).toFixed(1),
+    +(moderate/total*100).toFixed(1),
+    +(critical/total*100).toFixed(1)
+  ] : [0,0,0];
+  doughnutChart.update('none');
+}
+
+function updateReportChart() {
+  if (!reportChart) return;
+  const rows = calculateHourly(state.historyData);
+  reportChart.data.labels = rows.map(r=>`${r.hour}h`);
+  reportChart.data.datasets[0].data = rows.map(r=>+r.average.toFixed(1));
+  reportChart.data.datasets[0].backgroundColor = rows.map(r =>
+    r.average < state.cfg.moderate ? 'rgba(16,185,129,.75)' :
+    r.average < state.cfg.critical ? 'rgba(245,158,11,.75)' : 'rgba(239,68,68,.75)'
+  );
+  reportChart.update('none');
+}
+
+/* =========================
+   Navegação
+   ========================= */
+function goTo(page, el) {
+  if (isStudentUser() && !new Set(['painel','desafio']).has(page)) {
+    page = 'painel';
+    el = document.querySelector('.nav-item[data-page="painel"]');
+  }
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(`page-${page}`)?.classList.add('active');
+  if (el) el.classList.add('active');
+  setText('topbar-title', ({painel:'Painel',graficos:'Gráficos',salas:'Salas',alertas:'Alertas',historico:'Histórico',relatorios:'Relatórios',sobre:'Sobre o Projeto',config:'Configurações',desafio:'Desafio das Salas'})[page] || page);
+  if (window.innerWidth <= 768) closeSidebar();
+
+  if (page === 'graficos') { updateLineChart(); updateBarChart(); updateDoughnutChart(); }
+  if (page === 'salas') renderSalas();
+  if (page === 'alertas') renderAlerts();
+  if (page === 'historico') renderHistory();
+  if (page === 'relatorios') renderReports();
+  if (page === 'config') updateConfigForm();
+  if (page === 'desafio') loadChallenge();
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  let overlay = document.querySelector('.sidebar-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'sidebar-overlay';
+    overlay.setAttribute('aria-hidden','true');
+    overlay.addEventListener('click', closeSidebar);
+    document.body.appendChild(overlay);
+  }
+  const open = !sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', open);
+  overlay.classList.toggle('show', open);
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar')?.classList.remove('open');
+  document.querySelector('.sidebar-overlay')?.classList.remove('show');
+}
+
+/* =========================
+   Render geral / erros
+   ========================= */
+function renderAll() {
+  updateUserUI();
+  updatePainel();
+  updateModeUI();
+  setText('gauge-unit', getMeasurementUnit());
+  renderSalas();
+  renderAlerts();
+  renderHistory();
+  renderReports();
+  updateMiniChart(state.currentDb);
+  updateSalas();
+  updateLineChart();
+  updateBarChart();
+  updateDoughnutChart();
+}
+
+function updateLastUpdateTimer(now) {
+  state.lastReadingAt = now.toISOString();
+  state.timers.lastUpdate && clearInterval(state.timers.lastUpdate);
+  state.timers.lastUpdate = setInterval(() => {
+    const seconds = Math.floor((Date.now() - new Date(state.lastReadingAt).getTime()) / 1000);
+    setText('last-update', `${Math.max(0,seconds)}s`);
+    if (state.cfg.mode === 'real') updateModeUI();
+    updateSalas();
+  }, 1000);
+}
+
+function showOperationalError(message) {
+  setText('status-text', message);
+  setText('gauge-val', '--');
+  const dot = document.querySelector('#gauge-status .status-dot');
+  if (dot) { dot.style.background = 'var(--red)'; dot.style.boxShadow = '0 0 8px var(--red)'; }
+}
+
+function clearOperationalError() {
+  if (state.currentDb != null) setText('status-text', getLevel(state.currentDb).label);
+}
+
+function shakeCard() {
+  const card = document.querySelector('.login-card');
+  if (!card) return;
+  card.style.animation = 'none';
+  void card.offsetHeight;
+  card.style.animation = 'shake .4s ease';
+}
+
+function showLoginError(message) {
+  const el = document.getElementById('login-error');
+  if (el) el.textContent = message || '';
+}
+function clearLoginError() { showLoginError(''); }
+
+function showToast(message, color = 'blue') {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  const allowed = ['green','red','yellow','blue','purple'];
+  const safeColor = allowed.includes(color) ? color : 'blue';
+  t.innerHTML = `<i class="fa-solid fa-circle-info" style="color:var(--${safeColor})"></i> ${escapeHtml(message)}`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+function playAlertTone() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.03, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.18);
+  } catch { /* navegador bloqueou áudio */ }
+}
+
+/* =========================
+   Utilitários
+   ========================= */
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+function setValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value ?? '';
+}
+function setChecked(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.checked = Boolean(value);
+}
+function formatDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '--' : date.toLocaleDateString('pt-BR');
+}
+function formatTime(value, seconds=false) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '--:--' : date.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second: seconds ? '2-digit' : undefined});
+}
+function formatDateTime(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '--' : date.toLocaleString('pt-BR');
+}
+function csvEscape(value) {
+  return `"${String(value ?? '').replace(/"/g,'""')}"`;
+}
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = String(value ?? '');
+  return div.innerHTML;
+}
+function escapeJs(value) {
+  return String(value ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+  </script>
+
+<script>
+/* =========================================================
+   DESAFIO DAS SALAS — ranking persistente no servidor
+   Regras padrão:
+   +1 ponto/minuto dentro do limite moderado
+   -0.5 ponto/minuto em moderado
+   -2 pontos/minuto em crítico
+   +10 pontos a cada 10 minutos consecutivos em nível seguro
+   Intervalos sem leitura não geram pontos.
+   ========================================================= */
+const challengeState = { config:null, leaderboard:[], loading:false };
+
+function formatChallengeDate(value){
+  const d=new Date(value); return Number.isNaN(d.getTime())?'--':d.toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+}
+function formatMinutes(min){
+  const m=Math.max(0,Math.round(Number(min)||0));
+  if(m<60)return `${m} min`;
+  return `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}min`;
+}
+function challengeConfigDefaults(){
+  return {title:'Desafio das Salas',startAt:new Date().toISOString(),endAt:new Date(Date.now()+7*86400000).toISOString(),safePoints:1,moderatePenalty:.5,criticalPenalty:2,streakBonus:10,prizes:['Prêmio principal','Prêmio secundário','Menção de destaque']};
+}
+async function loadChallenge(){
+  if(!state.user) return;
+  try{
+    challengeState.loading=true;
+    const result=await apiRequest('/api/desafio');
+    challengeState.config=result.config||challengeConfigDefaults();
+    challengeState.leaderboard=result.leaderboard||[];
+    renderChallenge(result);
+    if(isAdminUser()) fillChallengeAdmin(challengeState.config);
+  }catch(e){
+    console.error(e); showToast(e.message||'Não foi possível carregar o desafio.','red');
+  }finally{ challengeState.loading=false; }
+}
+function renderChallenge(result){
+  const cfg=result.config||challengeConfigDefaults(), rows=result.leaderboard||[];
+  setText('challenge-title',cfg.title||'Desafio das Salas');
+  const now=Date.now(), start=new Date(cfg.startAt).getTime(), end=new Date(cfg.endAt).getTime();
+  const active=now>=start&&now<=end;
+  const days=Math.max(0,Math.ceil((end-now)/86400000));
+  setText('challenge-days',String(days));
+  setText('challenge-period',`${formatChallengeDate(cfg.startAt)} até ${formatChallengeDate(cfg.endAt)}`);
+  setText('challenge-status',active?'Competição ativa':now<start?'Ainda não começou':'Competição encerrada');
+  const statusDot=document.querySelector('.challenge-live-pill .dot'); if(statusDot) statusDot.className=`dot ${active?'green':'yellow'}`;
+  setText('challenge-updated',`Atualizado ${formatChallengeDate(new Date())}`);
+  const board=document.getElementById('challenge-leaderboard');
+  if(!rows.length){ board.innerHTML='<div class="challenge-empty">Ainda não há dados suficientes para montar o ranking.</div>'; }
+  else board.innerHTML=rows.map((r,i)=>{
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}º`;
+    return `<div class="leaderboard-row ${i<3?'top':''}"><div class="rank-medal">${medal}</div><div><span class="room-name">${escapeHtml(r.room)}</span><span class="room-sub">${formatMinutes(r.safeMinutes)} seguros · ${r.wakes} excesso(s)</span></div><div class="score"><strong>${Number(r.points).toFixed(1)} pts</strong><small>${Number(r.streakMinutes).toFixed(0)} min sequência</small></div><div class="score"><strong>${Number(r.safePercent).toFixed(1)}%</strong><small>tempo seguro</small></div></div>`;
+  }).join('');
+  const rules=document.getElementById('challenge-rules');
+  rules.innerHTML=[
+    `+${Number(cfg.safePoints).toFixed(1)} ponto por minuto dentro do limite seguro.`,
+    `-${Number(cfg.moderatePenalty).toFixed(1)} ponto por minuto em nível moderado.`,
+    `-${Number(cfg.criticalPenalty).toFixed(1)} pontos por minuto em nível crítico.`,
+    `+${Number(cfg.streakBonus).toFixed(0)} pontos a cada 10 minutos consecutivos em nível seguro.`,
+    'Intervalos sem leitura não pontuam e não contam como tempo seguro.',
+    'Em empate, vence a sala com maior tempo seguro; persistindo, maior sequência.'
+  ].map(x=>`<li>${escapeHtml(x)}</li>`).join('');
+  const prizes=Array.isArray(cfg.prizes)?cfg.prizes:[];
+  document.getElementById('challenge-prizes').innerHTML=prizes.map((p,i)=>`<div class="prize-item"><strong>${i===0?'🥇 1º lugar':i===1?'🥈 2º lugar':'🥉 3º lugar'}</strong>${escapeHtml(p||'A definir')}</div>`).join('');
+  const leader=rows[0];
+  setText('challenge-leader',leader?.room||'--');
+  const bestSafe=[...rows].sort((a,b)=>b.safeMinutes-a.safeMinutes)[0]; setText('challenge-best-safe',bestSafe?`${bestSafe.room} · ${formatMinutes(bestSafe.safeMinutes)}`:'--');
+  const bestStreak=[...rows].sort((a,b)=>b.streakMinutes-a.streakMinutes)[0]; setText('challenge-best-streak',bestStreak?`${bestStreak.room} · ${Number(bestStreak.streakMinutes).toFixed(0)} min`:'--');
+  const bestControl=[...rows].sort((a,b)=>a.wakes-b.wakes)[0]; setText('challenge-best-control',bestControl?`${bestControl.room} · ${bestControl.wakes}`:'--');
+  document.getElementById('challenge-admin-panel')?.classList.toggle('hidden',!isAdminUser());
+}
+function fillChallengeAdmin(cfg){
+  setValue('challenge-admin-title',cfg.title||'Desafio das Salas');
+  const toLocal=v=>{const d=new Date(v);if(Number.isNaN(d.getTime()))return '';const pad=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`};
+  setValue('challenge-admin-start',toLocal(cfg.startAt)); setValue('challenge-admin-end',toLocal(cfg.endAt));
+  setValue('challenge-admin-safe',cfg.safePoints??1); setValue('challenge-admin-moderate',cfg.moderatePenalty??.5); setValue('challenge-admin-critical',cfg.criticalPenalty??2); setValue('challenge-admin-streak',cfg.streakBonus??10);
+  setValue('challenge-prize-1',cfg.prizes?.[0]||'Prêmio principal'); setValue('challenge-prize-2',cfg.prizes?.[1]||'Prêmio secundário'); setValue('challenge-prize-3',cfg.prizes?.[2]||'Menção de destaque');
+}
+async function saveChallengeConfig(){
+  if(!isAdminUser())return;
+  const start=document.getElementById('challenge-admin-start')?.value,end=document.getElementById('challenge-admin-end')?.value;
+  const cfg={title:sanitizePlain(document.getElementById('challenge-admin-title')?.value||'Desafio das Salas',80),startAt:new Date(start).toISOString(),endAt:new Date(end).toISOString(),safePoints:Number(document.getElementById('challenge-admin-safe')?.value),moderatePenalty:Number(document.getElementById('challenge-admin-moderate')?.value),criticalPenalty:Number(document.getElementById('challenge-admin-critical')?.value),streakBonus:Number(document.getElementById('challenge-admin-streak')?.value),prizes:[sanitizePlain(document.getElementById('challenge-prize-1')?.value||'',120),sanitizePlain(document.getElementById('challenge-prize-2')?.value||'',120),sanitizePlain(document.getElementById('challenge-prize-3')?.value||'',120)]};
+  if(!Number.isFinite(new Date(start).getTime())||!Number.isFinite(new Date(end).getTime())||new Date(end)<=new Date(start)){showToast('Período do desafio inválido.','red');return;}
+  if(![cfg.safePoints,cfg.moderatePenalty,cfg.criticalPenalty,cfg.streakBonus].every(Number.isFinite)||cfg.safePoints<0||cfg.moderatePenalty<0||cfg.criticalPenalty<0||cfg.streakBonus<0){showToast('Valores de pontuação inválidos.','red');return;}
+  try{await apiRequest('/api/desafio',{method:'PUT',body:JSON.stringify(cfg)});showToast('Desafio salvo com sucesso.','green');await loadChallenge();}catch(e){showToast(e.message||'Não foi possível salvar o desafio.','red');}
+}
+</script>
+
+</body>
+</html>

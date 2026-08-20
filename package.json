@@ -1,0 +1,16 @@
+{
+  "name": "bom-ruido",
+  "version": "4.0.0",
+  "private": true,
+  "description": "Bom Ruido - monitoramento escolar com controle de acesso e banco remoto",
+  "main": "server.js",
+  "scripts": {"start": "node server.js"},
+  "engines": {"node": ">=20"},
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "bcryptjs": "^3.0.2",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.3"
+  }
+}
